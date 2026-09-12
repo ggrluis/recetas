@@ -3,151 +3,279 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#16424B">
-<title>Recetario</title>
+<meta name="theme-color" content="#FBFAF7">
+<title>Puchero</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #FAF9F5;
-    --surface: #FFFFFF;
-    --primary: #16424B;
-    --primary-soft: #E8EEEC;
-    --accent: #C08A34;
-    --ink: #211F1B;
-    --ink-muted: #7A7468;
-    --line: #E6E2D8;
-    --danger: #A8442D;
-    --success: #3F6B4E;
+    /* Papel cálido + una sola tinta de acento. Nada más. */
+    --bg:        #FBFAF7;
+    --surface:   #FFFFFF;
+    --ink:       #1B1A17;
+    --ink-2:     #55514A;
+    --ink-3:     #918B7E;
+    --line:      #E9E5DB;
+    --line-soft: #F1EDE4;
+    --accent:    #2E4A3F;
+    --accent-bg: #EDF1EE;
+    --warm:      #B0763A;
+    --warm-bg:   #F7EFE3;
+    --danger:    #9E4A33;
+
+    --r: 12px;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --tab-h: 58px;
   }
+
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); }
+  html{ background:var(--bg); }
   body{
-    font-family:'IBM Plex Sans',sans-serif; font-size:15px; line-height:1.5;
-    padding-bottom:calc(66px + env(safe-area-inset-bottom)); min-height:100vh;
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    font-size:15px; line-height:1.5; letter-spacing:-0.005em;
     -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(var(--tab-h) + var(--safe-b) + 12px);
+    min-height:100vh; overscroll-behavior-y:none;
   }
-  h1,h2,h3{ font-family:'Fraunces',serif; font-weight:500; margin:0 0 4px; color:var(--ink); letter-spacing:-0.01em; }
-  h1{ font-size:21px; } h2{ font-size:18px; }
-  h3{ font-size:13px; color:var(--ink-muted); font-family:'IBM Plex Sans',sans-serif; font-weight:600; letter-spacing:0.02em; text-transform:uppercase; }
   button{ font-family:inherit; cursor:pointer; }
-  input,select,textarea{ font-family:inherit; font-size:15px; }
+  input,select,textarea{ font-family:inherit; font-size:16px; } /* 16px evita el zoom automático de iOS */
 
-  header.top{ padding:22px 20px 16px; background:var(--primary); color:#F4F1E9; border-bottom:3px solid var(--accent); }
-  header.top h1{ color:#FBFAF5; }
-  header.top p{ margin:3px 0 0; font-size:13px; color:#B9CDC9; }
+  /* ── Cabecera: título grande, pegajoso, respetando la barra de estado ── */
+  header.top{
+    position:sticky; top:0; z-index:15;
+    padding:calc(var(--safe-t) + 14px) 20px 12px;
+    background:rgba(251,250,247,.86);
+    backdrop-filter:saturate(180%) blur(16px);
+    -webkit-backdrop-filter:saturate(180%) blur(16px);
+    border-bottom:1px solid transparent;
+    transition:border-color .2s;
+  }
+  header.top.scrolled{ border-bottom-color:var(--line); }
+  header.top h1{
+    margin:0; font-family:'Fraunces',Georgia,serif; font-weight:500;
+    font-size:27px; line-height:1.15; letter-spacing:-0.02em; color:var(--ink);
+  }
 
-  main{ padding:18px 16px; max-width:560px; margin:0 auto; }
+  main{ padding:8px 20px 0; max-width:620px; margin:0 auto; }
 
+  h2{ font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:19px; letter-spacing:-0.015em; margin:0; }
+  h3{
+    font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--ink-3); margin:0 0 8px;
+  }
+  .sub{ font-size:13px; color:var(--ink-3); line-height:1.45; }
+
+  /* ── Barra de pestañas ─────────────────────────────────── */
   nav.tabs{
-    position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:space-around;
-    background:var(--surface); border-top:1px solid var(--line);
-    padding:8px 4px calc(8px + env(safe-area-inset-bottom)); z-index:20;
+    position:fixed; left:0; right:0; bottom:0; z-index:20; display:flex;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:saturate(180%) blur(16px);
+    -webkit-backdrop-filter:saturate(180%) blur(16px);
+    border-top:1px solid var(--line);
+    padding-bottom:var(--safe-b);
   }
-  nav.tabs button{ flex:1; background:none; border:none; padding:6px 2px; font-size:12px; color:var(--ink-muted); }
-  nav.tabs button.activo{ color:var(--primary); font-weight:600; }
+  nav.tabs button{
+    flex:1; background:none; border:none; height:var(--tab-h);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    color:var(--ink-3); font-size:10.5px; font-weight:500; letter-spacing:.01em;
+    transition:color .15s;
+  }
+  nav.tabs button svg{ width:21px; height:21px; }
+  nav.tabs button.activo{ color:var(--accent); }
+  nav.tabs button.activo svg{ stroke-width:1.9; }
 
-  .pantalla{ display:none; }
+  .pantalla{ display:none; animation:entra .22s ease-out; }
   .pantalla.activa{ display:block; }
+  @keyframes entra{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
 
-  .ficha{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:8px; }
-  .ficha-cab{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
-  .etiquetas{ display:flex; gap:6px; margin:6px 0 0; flex-wrap:wrap; }
-  .etiqueta{ font-size:11px; padding:2px 9px; border-radius:20px; background:var(--primary-soft); color:var(--primary); }
-  .etiqueta.aviso{ background:#F6EBD9; color:#8A5D12; }
-
-  .fila{ display:flex; gap:10px; align-items:center; }
-  .fila + .fila{ margin-top:10px; }
-  .col{ flex:1; }
-
-  label{ display:block; font-size:12.5px; color:var(--ink-muted); margin-bottom:4px; }
-  input[type=text],input[type=number],select,textarea{
-    width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
+  /* ── Listas: filas separadas por línea fina, sin cajas ── */
+  .lista{ margin:0; }
+  .fila-lista{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+    padding:14px 0; border-bottom:1px solid var(--line-soft); cursor:pointer;
   }
-  input:focus,select:focus,textarea:focus{ outline:2px solid var(--primary); outline-offset:1px; }
-  textarea{ min-height:110px; resize:vertical; }
+  .fila-lista:last-child{ border-bottom:none; }
+  .fila-lista:active{ background:var(--line-soft); }
+  .fila-lista .cuerpo{ flex:1; min-width:0; }
+  .fila-lista .titulo{ font-size:15.5px; font-weight:500; line-height:1.3; }
+  .fila-lista .meta{ font-size:12.5px; color:var(--ink-3); margin-top:3px; }
+  .fila-lista .dcha{ font-size:12.5px; color:var(--ink-3); white-space:nowrap; padding-top:2px; }
 
-  .btn{ display:inline-block; padding:10px 16px; border-radius:8px; border:1px solid var(--primary); background:var(--primary); color:#fff; font-size:14px; font-weight:500; }
-  .btn.secundario{ background:transparent; color:var(--primary); }
-  .btn.peligro{ background:transparent; color:var(--danger); border-color:var(--danger); }
-  .btn.pequeno{ padding:6px 12px; font-size:12.5px; }
+  .pill{
+    display:inline-block; font-size:11px; line-height:1.6; padding:0 8px; border-radius:999px;
+    background:var(--accent-bg); color:var(--accent); margin-right:5px;
+  }
+  .pill.warm{ background:var(--warm-bg); color:var(--warm); }
+
+  /* ── Formularios ───────────────────────────────────────── */
+  .fila{ display:flex; gap:10px; align-items:center; }
+  .fila + .fila{ margin-top:12px; }
+  .col{ flex:1; min-width:0; }
+
+  label{ display:block; font-size:12px; color:var(--ink-3); margin-bottom:5px; font-weight:500; }
+  input[type=text],input[type=number],input[type=password],select,textarea{
+    width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:10px;
+    background:var(--surface); color:var(--ink); -webkit-appearance:none; appearance:none;
+    transition:border-color .15s;
+  }
+  select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23918B7E' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 13px center; padding-right:34px;
+  }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--accent); }
+  input:disabled{ background:var(--line-soft); color:var(--ink-3); }
+  textarea{ min-height:130px; resize:vertical; line-height:1.6; }
+
+  .busca{ position:relative; margin-bottom:14px; }
+  .busca input{ padding-left:38px; border-radius:10px; background:var(--surface); }
+  .busca svg{ position:absolute; left:13px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--ink-3); pointer-events:none; }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:12px 18px; border-radius:10px; border:1px solid var(--accent);
+    background:var(--accent); color:#fff; font-size:14.5px; font-weight:500; letter-spacing:-0.005em;
+  }
+  .btn.secundario{ background:transparent; color:var(--accent); border-color:var(--line); }
+  .btn.peligro{ background:transparent; color:var(--danger); border-color:transparent; }
+  .btn.pequeno{ padding:7px 13px; font-size:13px; border-radius:8px; }
   .btn.ancho{ width:100%; }
-  .btn:disabled{ opacity:.5; }
+  .btn:disabled{ opacity:.45; }
+  .btn:active{ transform:scale(.985); }
 
-  .icono{ background:none; border:none; color:var(--ink-muted); font-size:15px; padding:2px 6px; line-height:1; }
+  .icono{ background:none; border:none; color:var(--ink-3); font-size:15px; padding:4px 6px; line-height:1; flex-shrink:0; }
   .icono.rojo{ color:var(--danger); }
 
   .fab{
-    position:fixed; right:18px; bottom:calc(80px + env(safe-area-inset-bottom));
-    width:50px; height:50px; border-radius:50%; background:var(--primary); color:#fff;
-    border:none; font-size:24px; font-weight:300; box-shadow:0 2px 8px rgba(22,66,75,.35); z-index:19;
+    position:fixed; right:20px; bottom:calc(var(--tab-h) + var(--safe-b) + 18px); z-index:19;
+    width:52px; height:52px; border-radius:50%; border:none;
+    background:var(--accent); color:#fff; font-size:25px; font-weight:200; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 16px rgba(46,74,63,.28);
   }
+  .fab:active{ transform:scale(.94); }
 
-  .buscador{ margin-bottom:14px; }
-  .vacio{ text-align:center; color:var(--ink-muted); padding:34px 10px; font-size:14px; }
+  .vacio{ text-align:center; color:var(--ink-3); padding:52px 20px; font-size:14px; line-height:1.6; }
 
-  .overlay{ display:none; position:fixed; inset:0; background:rgba(20,20,15,.35); z-index:30; align-items:flex-end; }
+  /* ── Hojas modales ─────────────────────────────────────── */
+  .overlay{
+    display:none; position:fixed; inset:0; z-index:30; align-items:flex-end;
+    background:rgba(27,26,23,.32); backdrop-filter:blur(2px);
+  }
   .overlay.activo{ display:flex; }
-  .hoja{ background:var(--bg); width:100%; max-height:92vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:20px 20px calc(20px + env(safe-area-inset-bottom)); }
-  .hoja-cabecera{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:10px; }
-  .cerrar{ background:none; border:none; font-size:22px; color:var(--ink-muted); padding:4px 8px; line-height:1; }
+  .hoja{
+    background:var(--bg); width:100%; max-height:90vh; overflow-y:auto;
+    border-radius:20px 20px 0 0; padding:10px 20px calc(24px + var(--safe-b));
+    animation:sube .26s cubic-bezier(.32,.72,0,1);
+    -webkit-overflow-scrolling:touch;
+  }
+  @keyframes sube{ from{transform:translateY(100%);} to{transform:none;} }
+  .hoja::before{
+    content:''; display:block; width:36px; height:4px; border-radius:99px;
+    background:var(--line); margin:0 auto 14px;
+  }
+  .hoja-cabecera{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:12px; }
+  .cerrar{ background:none; border:none; font-size:24px; color:var(--ink-3); padding:0 4px; line-height:1; margin-top:-2px; }
 
-  .ing-fila{ margin-bottom:8px; }
-  .ing-linea{ display:flex; gap:6px; align-items:flex-end; }
+  .bloque{ margin-top:26px; }
+
+  /* ── Ingredientes dentro de la receta ──────────────────── */
+  .ing-fila{ margin-bottom:10px; }
+  .ing-linea{ display:flex; gap:8px; align-items:flex-end; }
   .ing-fila .col{ flex:2; }
   .ing-fila .col.cant{ flex:1; }
-  .ing-nuevo{ background:var(--primary-soft); border-radius:8px; padding:10px 12px; margin-top:6px; }
-  .ing-nuevo .sub{ margin:0 0 8px; }
+  .ing-nuevo{ background:var(--accent-bg); border-radius:var(--r); padding:14px; margin-top:8px; }
 
-  .msg{ font-size:13px; padding:9px 11px; border-radius:8px; margin-bottom:12px; }
-  .msg.error{ background:#F3E3DC; color:var(--danger); }
-  .msg.aviso{ background:#F6EBD9; color:#8A5D12; }
-  .msg.ok{ background:#E3EBE5; color:var(--success); }
+  .msg{ font-size:13px; padding:11px 13px; border-radius:10px; margin-top:12px; line-height:1.45; }
+  .msg.error{ background:#F5E6E1; color:var(--danger); }
+  .msg.aviso{ background:var(--warm-bg); color:var(--warm); }
 
-  .banda-estado{ font-size:12.5px; padding:7px 16px; text-align:center; display:none; }
+  /* ── Banda de estado (offline / sincronizando) ─────────── */
+  .banda-estado{
+    display:none; font-size:12px; padding:7px 20px; text-align:center;
+    position:sticky; top:calc(var(--safe-t) + 52px); z-index:14;
+  }
   .banda-estado.visible{ display:block; }
-  .banda-estado.offline{ background:#F6EBD9; color:#8A5D12; }
-  .banda-estado.sync{ background:var(--primary-soft); color:var(--primary); }
+  .banda-estado.offline{ background:var(--warm-bg); color:var(--warm); }
+  .banda-estado.sync{ background:var(--accent-bg); color:var(--accent); }
 
-  .periodo-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; font-size:13px; gap:8px; }
-  .periodo-nav button{ background:none; border:none; color:var(--primary); font-weight:500; padding:4px 2px; white-space:nowrap; }
-  .periodo-nav strong{ font-weight:500; text-align:center; }
-  .dia-bloque{ padding:12px 0; border-bottom:1px solid var(--line); }
-  .dia-bloque:last-child{ border-bottom:none; }
-  .dia-titulo{ font-family:'Fraunces',serif; font-weight:500; font-size:15px; margin-bottom:2px; text-transform:capitalize; }
-  .dia-titulo.hoy::after{ content:'hoy'; font-family:'IBM Plex Sans',sans-serif; font-size:10px; background:var(--accent); color:#fff; padding:1px 7px; border-radius:20px; margin-left:8px; vertical-align:middle; }
-  .momento-titulo{ font-size:11px; color:var(--ink-muted); margin:10px 0 5px; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; }
-  .chip-receta{ display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px 11px; margin-bottom:6px; font-size:13.5px; gap:8px; }
-  .add-momento{ background:none; border:1px dashed var(--line); border-radius:8px; width:100%; padding:8px; font-size:13px; color:var(--primary); }
+  /* ── Semana ────────────────────────────────────────────── */
+  .periodo-nav{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-bottom:6px; padding-bottom:14px; border-bottom:1px solid var(--line);
+  }
+  .periodo-nav button{
+    background:none; border:none; color:var(--accent); padding:6px 2px;
+    display:flex; align-items:center;
+  }
+  .periodo-nav svg{ width:17px; height:17px; }
+  .periodo-nav strong{ font-weight:500; font-size:13.5px; color:var(--ink-2); text-align:center; }
 
-  .item-compra{ display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); }
-  .item-compra input[type=checkbox]{ width:20px; height:20px; accent-color:var(--success); flex-shrink:0; }
-  .item-compra .nombre{ flex:1; }
-  .item-compra.comprado .nombre{ text-decoration:line-through; color:var(--ink-muted); }
-  .item-compra .cant{ font-size:12.5px; color:var(--ink-muted); white-space:nowrap; }
-  .item-compra.pendiente-sync{ opacity:.6; }
+  .dia{ padding:16px 0; border-bottom:1px solid var(--line-soft); }
+  .dia:last-child{ border-bottom:none; }
+  .dia-cab{ display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
+  .dia-nombre{ font-family:'Fraunces',Georgia,serif; font-size:16px; font-weight:500; text-transform:capitalize; }
+  .dia-fecha{ font-size:12.5px; color:var(--ink-3); }
+  .dia.es-hoy .dia-nombre{ color:var(--accent); }
+  .dia.es-hoy .dia-fecha::after{
+    content:'hoy'; margin-left:7px; font-size:10px; font-weight:600; letter-spacing:.05em;
+    text-transform:uppercase; background:var(--accent); color:#fff; padding:1px 7px; border-radius:99px;
+  }
+  .momento{ margin-top:12px; }
+  .momento-tit{ font-size:10.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; }
+  .chip{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; margin-bottom:6px; font-size:14px;
+  }
+  .anadir{
+    width:100%; background:none; border:1px dashed var(--line); border-radius:10px;
+    padding:10px; font-size:13px; color:var(--ink-3);
+  }
+  .anadir:active{ border-color:var(--accent); color:var(--accent); }
 
-  .resultado-busqueda{ background:#fff; border:1px solid var(--line); border-radius:8px; padding:9px 11px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:13.5px; gap:8px; }
-  .sub{ font-size:12px; color:var(--ink-muted); }
+  /* ── Compra ────────────────────────────────────────────── */
+  .item{ display:flex; align-items:center; gap:13px; padding:13px 0; border-bottom:1px solid var(--line-soft); }
+  .item:last-child{ border-bottom:none; }
+  .item input[type=checkbox]{
+    appearance:none; -webkit-appearance:none; flex-shrink:0;
+    width:22px; height:22px; border:1.5px solid var(--line); border-radius:50%;
+    background:var(--surface); transition:all .15s; position:relative;
+  }
+  .item input[type=checkbox]:checked{ background:var(--accent); border-color:var(--accent); }
+  .item input[type=checkbox]:checked::after{
+    content:''; position:absolute; left:7px; top:3.5px; width:5px; height:10px;
+    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
+  }
+  .item .nombre{ flex:1; font-size:15px; min-width:0; }
+  .item .cant{ font-size:12.5px; color:var(--ink-3); white-space:nowrap; }
+  .item.hecho .nombre{ color:var(--ink-3); text-decoration:line-through; text-decoration-color:var(--line); }
+  .item.hecho .cant{ opacity:.5; }
+  .item.pendiente{ opacity:.55; }
+
+  .separador{
+    font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--ink-3); padding:22px 0 6px;
+  }
 </style>
 </head>
 <body>
 
 <header class="top">
-  <h1 id="titulo-pantalla">Recetario</h1>
-  <p id="subtitulo-pantalla">Tus recetas de siempre</p>
+  <h1 id="titulo-pantalla">Puchero</h1>
 </header>
 <div class="banda-estado" id="banda-estado"></div>
 
 <main>
 
   <section class="pantalla activa" id="pantalla-recetas">
-    <div class="buscador"><input type="text" id="buscar-receta" placeholder="Buscar receta..."></div>
+    <div class="busca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="buscar-receta" placeholder="Buscar receta"></div>
     <div class="fila" style="margin-bottom:14px;">
       <select id="filtro-macro" class="col"></select>
       <select id="filtro-grupo" class="col"></select>
@@ -157,16 +285,16 @@
 
   <section class="pantalla" id="pantalla-ingredientes">
     <div id="avisos-conversiones"></div>
-    <div class="buscador"><input type="text" id="buscar-ingrediente" placeholder="Buscar ingrediente..."></div>
+    <div class="busca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="buscar-ingrediente" placeholder="Buscar ingrediente"></div>
     <button class="btn secundario ancho" id="btn-nuevo-ingrediente" style="margin-bottom:14px;">+ Nuevo ingrediente</button>
     <div id="lista-ingredientes"></div>
   </section>
 
   <section class="pantalla" id="pantalla-menu">
     <div class="periodo-nav">
-      <button id="periodo-anterior">‹ Anterior</button>
+      <button id="periodo-anterior" aria-label="Periodo anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
       <strong id="periodo-label"></strong>
-      <button id="periodo-siguiente">Siguiente ›</button>
+      <button id="periodo-siguiente" aria-label="Periodo siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
     <div id="grid-menu"></div>
   </section>
@@ -182,10 +310,26 @@
 <button class="fab" id="fab-nueva" title="Nueva receta">+</button>
 
 <nav class="tabs">
-  <button data-pantalla="recetas" class="activo">Recetario</button>
-  <button data-pantalla="ingredientes">Ingredientes</button>
-  <button data-pantalla="menu">Menú</button>
-  <button data-pantalla="compra">Compra</button>
+  <button data-pantalla="recetas" class="activo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v18H5.5A1.5 1.5 0 0 1 4 19.5z"/><path d="M8 3v18"/>
+    </svg><span>Recetas</span>
+  </button>
+  <button data-pantalla="ingredientes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 21a7 7 0 0 0 7-7c0-4-3-7.5-7-11C8 6.5 5 10 5 14a7 7 0 0 0 7 7z"/>
+    </svg><span>Despensa</span>
+  </button>
+  <button data-pantalla="menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+    </svg><span>Semana</span>
+  </button>
+  <button data-pantalla="compra">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7h16l-1.2 12.1a2 2 0 0 1-2 1.9H7.2a2 2 0 0 1-2-1.9z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/>
+    </svg><span>Compra</span>
+  </button>
 </nav>
 
 <!-- Detalle de receta -->
@@ -195,7 +339,7 @@
       <h2 id="detalle-nombre"></h2>
       <button class="cerrar" data-cerrar="overlay-detalle">×</button>
     </div>
-    <div class="etiquetas" id="detalle-etiquetas"></div>
+    <div id="detalle-etiquetas" style="margin-bottom:8px;"></div>
     <p class="sub" id="detalle-personas"></p>
     <h3 style="margin-top:16px;">Ingredientes</h3>
     <ul id="detalle-ingredientes" style="padding-left:18px; margin:6px 0 0;"></ul>
@@ -312,7 +456,7 @@
 <!-- Puerta de entrada: PIN -->
 <div class="overlay" id="overlay-pin" style="align-items:center; background:var(--primary);">
   <div class="hoja" style="border-radius:14px; margin:0 20px; max-width:340px; text-align:center;">
-    <h2 style="margin-bottom:6px;">Recetario</h2>
+    <h2 id="pin-nombre-app" style="margin-bottom:6px;">Puchero</h2>
     <p class="sub" style="margin:0 0 16px;">Introduce el PIN de casa</p>
     <input type="password" id="pin-input" inputmode="numeric" autocomplete="current-password"
            style="text-align:center; font-size:22px; letter-spacing:6px;">
@@ -533,11 +677,15 @@ window.addEventListener('offline', actualizarBanda);
 // ════════════════════════════════════════════════════════════
 // NAVEGACIÓN
 // ════════════════════════════════════════════════════════════
+// Nombre de la app. Cambiarlo aquí lo cambia en la cabecera y en la
+// pantalla del PIN (el del icono está en manifest.json).
+const NOMBRE_APP = 'Puchero';
+
 const TITULOS = {
-  recetas: ['Recetario', 'Tus recetas de siempre'],
-  ingredientes: ['Ingredientes', 'Catálogo y equivalencias'],
-  menu: ['Menú', 'De la cena del sábado a la comida del siguiente'],
-  compra: ['Lista de la compra', 'Del menú, más lo que añadas a mano']
+  recetas: 'Recetas',
+  ingredientes: 'Despensa',
+  menu: 'Semana',
+  compra: 'Compra'
 };
 
 document.querySelectorAll('nav.tabs button').forEach(function (btn) {
@@ -547,9 +695,8 @@ document.querySelectorAll('nav.tabs button').forEach(function (btn) {
     const nombre = btn.dataset.pantalla;
     document.querySelectorAll('.pantalla').forEach(function (p) { p.classList.remove('activa'); });
     document.getElementById('pantalla-' + nombre).classList.add('activa');
-    document.getElementById('titulo-pantalla').textContent = TITULOS[nombre][0];
-    document.getElementById('subtitulo-pantalla').textContent = TITULOS[nombre][1];
-    document.getElementById('fab-nueva').style.display = (nombre === 'recetas') ? 'block' : 'none';
+    document.getElementById('titulo-pantalla').textContent = TITULOS[nombre];
+    document.getElementById('fab-nueva').style.display = (nombre === 'recetas') ? 'flex' : 'none';
     window.scrollTo(0, 0);
   });
 });
@@ -604,22 +751,25 @@ function renderRecetas() {
   const cont = document.getElementById('lista-recetas');
   if (!lista.length) {
     cont.innerHTML = APP.recetas.length
-      ? '<p class="vacio">Ninguna receta coincide con el filtro.</p>'
-      : '<p class="vacio">Aún no hay recetas. Usa el botón + para crear la primera.</p>';
+      ? '<p class="vacio">Ninguna receta coincide.</p>'
+      : '<p class="vacio">Todavía no hay recetas.<br>Empieza con el botón +</p>';
     return;
   }
 
-  cont.innerHTML = lista.map(function (r) {
-    return '<div class="ficha" data-id="' + r.id + '">' +
-      '<h2 style="font-size:16px;">' + escapeHtml(r.nombre) + '</h2>' +
-      '<div class="etiquetas">' +
-        (r.macronutriente_principal ? '<span class="etiqueta">' + escapeHtml(r.macronutriente_principal) + '</span>' : '') +
-        (r.grupo_alimenticio ? '<span class="etiqueta">' + escapeHtml(r.grupo_alimenticio) + '</span>' : '') +
-        '<span class="etiqueta">' + r.personas_base + ' pers.</span>' +
-      '</div></div>';
-  }).join('');
+  cont.innerHTML = '<div class="lista">' + lista.map(function (r) {
+    const tipos = [r.macronutriente_principal, r.grupo_alimenticio].filter(Boolean);
+    return '<div class="fila-lista" data-id="' + r.id + '">' +
+      '<div class="cuerpo">' +
+        '<div class="titulo">' + escapeHtml(r.nombre) + '</div>' +
+        (tipos.length ? '<div class="meta">' + tipos.map(function (t) {
+          return '<span class="pill">' + escapeHtml(t) + '</span>';
+        }).join('') + '</div>' : '') +
+      '</div>' +
+      '<div class="dcha">' + r.personas_base + ' pers.</div>' +
+    '</div>';
+  }).join('') + '</div>';
 
-  cont.querySelectorAll('.ficha').forEach(function (f) {
+  cont.querySelectorAll('.fila-lista').forEach(function (f) {
     f.addEventListener('click', function () { abrirDetalleReceta(f.dataset.id); });
   });
 }
@@ -636,8 +786,8 @@ function abrirDetalleReceta(id) {
   document.getElementById('detalle-nombre').textContent = receta.nombre;
   document.getElementById('detalle-personas').textContent = 'Cantidades para ' + receta.personas_base + ' personas.';
   document.getElementById('detalle-etiquetas').innerHTML =
-    (receta.macronutriente_principal ? '<span class="etiqueta">' + escapeHtml(receta.macronutriente_principal) + '</span>' : '') +
-    (receta.grupo_alimenticio ? '<span class="etiqueta">' + escapeHtml(receta.grupo_alimenticio) + '</span>' : '');
+    (receta.macronutriente_principal ? '<span class="pill">' + escapeHtml(receta.macronutriente_principal) + '</span>' : '') +
+    (receta.grupo_alimenticio ? '<span class="pill">' + escapeHtml(receta.grupo_alimenticio) + '</span>' : '');
 
   const ings = APP.recetaIngredientes.filter(function (ri) { return ri.id_receta === id; });
   document.getElementById('detalle-ingredientes').innerHTML = ings.length
@@ -905,24 +1055,26 @@ function renderIngredientes() {
   const lista = APP.ingredientes.filter(function (i) { return String(i.nombre).toLowerCase().indexOf(texto) !== -1; });
 
   if (!lista.length) {
-    cont.innerHTML = '<p class="vacio">' + (APP.ingredientes.length ? 'Ninguno coincide.' : 'Aún no hay ingredientes.') + '</p>';
+    cont.innerHTML = '<p class="vacio">' + (APP.ingredientes.length ? 'Ninguno coincide.' : 'La despensa está vacía.') + '</p>';
     return;
   }
 
-  cont.innerHTML = lista.map(function (i) {
-    const convs = APP.conversiones.filter(function (c) { return c.id_ingrediente === i.id; });
+  cont.innerHTML = '<div class="lista">' + lista.map(function (i) {
+    const convs = APP.conversiones.filter(function (c) { return c.id_ingrediente === i.id; }).length;
     const faltan = APP.avisos.filter(function (a) { return a.id_ingrediente === i.id; }).length;
-    return '<div class="ficha" data-id="' + i.id + '">' +
-      '<div class="ficha-cab"><strong>' + escapeHtml(i.nombre) + '</strong>' +
-      '<span class="sub">' + escapeHtml(i.unidad_base) + '</span></div>' +
-      (convs.length || faltan ? '<div class="etiquetas">' +
-        (convs.length ? '<span class="etiqueta">' + convs.length + ' equivalencia(s)</span>' : '') +
-        (faltan ? '<span class="etiqueta aviso">falta equivalencia</span>' : '') +
-      '</div>' : '') +
-      '</div>';
-  }).join('');
+    return '<div class="fila-lista" data-id="' + i.id + '">' +
+      '<div class="cuerpo">' +
+        '<div class="titulo">' + escapeHtml(i.nombre) + '</div>' +
+        (convs || faltan ? '<div class="meta">' +
+          (convs ? '<span class="pill">' + convs + ' equivalencia' + (convs > 1 ? 's' : '') + '</span>' : '') +
+          (faltan ? '<span class="pill warm">falta equivalencia</span>' : '') +
+        '</div>' : '') +
+      '</div>' +
+      '<div class="dcha">' + escapeHtml(i.unidad_base) + '</div>' +
+    '</div>';
+  }).join('') + '</div>';
 
-  cont.querySelectorAll('.ficha').forEach(function (f) {
+  cont.querySelectorAll('.fila-lista').forEach(function (f) {
     f.addEventListener('click', function () { abrirFormularioIngrediente(f.dataset.id); });
   });
 }
@@ -958,7 +1110,7 @@ function renderConversionesDe(ing) {
   const faltan = APP.avisos.filter(function (a) { return a.id_ingrediente === ing.id; });
 
   let html = convs.map(function (c) {
-    return '<div class="resultado-busqueda"><span>1 ' + escapeHtml(c.unidad_alternativa) +
+    return '<div class="chip"><span>1 ' + escapeHtml(c.unidad_alternativa) +
       ' = ' + c.factor_a_unidad_base + ' ' + escapeHtml(ing.unidad_base) + '</span>' +
       '<button class="icono rojo" data-conv="' + c.id + '">×</button></div>';
   }).join('');
@@ -1072,8 +1224,11 @@ function renderMenu() {
 
   const cont = document.getElementById('grid-menu');
   cont.innerHTML = dias.map(function (dia) {
-    return '<div class="dia-bloque">' +
-      '<div class="dia-titulo' + (dia.esHoy ? ' hoy' : '') + '">' + dia.nombre + ' ' + dia.corta + '</div>' +
+    return '<div class="dia' + (dia.esHoy ? ' es-hoy' : '') + '">' +
+      '<div class="dia-cab">' +
+        '<span class="dia-nombre">' + dia.nombre + '</span>' +
+        '<span class="dia-fecha">' + dia.corta + '</span>' +
+      '</div>' +
       dia.momentos.map(function (m) { return renderMomento(dia.fecha, m); }).join('') +
     '</div>';
   }).join('');
@@ -1086,7 +1241,7 @@ function renderMenu() {
     });
   });
 
-  cont.querySelectorAll('.add-momento').forEach(function (btn) {
+  cont.querySelectorAll('.anadir').forEach(function (btn) {
     btn.addEventListener('click', function () { abrirBuscadorMenu(btn.dataset.fecha, btn.dataset.momento); });
   });
 }
@@ -1095,13 +1250,15 @@ function renderMomento(fecha, momento) {
   const items = APP.menuSemana.filter(function (m) { return String(fechaDeFila(m.fecha)) === fecha && m.momento === momento; });
   const chips = items.map(function (m) {
     const receta = APP.recetas.filter(function (r) { return r.id === m.id_receta; })[0];
-    return '<div class="chip-receta"><span>' + escapeHtml(receta ? receta.nombre : '(eliminada)') +
-      ' <span class="sub">' + m.personas_ese_dia + ' pers.</span></span>' +
+    return '<div class="chip"><span>' + escapeHtml(receta ? receta.nombre : '(eliminada)') +
+      ' <span class="sub">· ' + m.personas_ese_dia + '</span></span>' +
       '<button class="icono rojo" data-quitar="' + m.id + '">×</button></div>';
   }).join('');
 
-  return '<div class="momento-titulo">' + (momento === 'comida' ? 'Comida' : 'Cena') + '</div>' + chips +
-    '<button class="add-momento" data-fecha="' + fecha + '" data-momento="' + momento + '">+ Añadir</button>';
+  return '<div class="momento">' +
+    '<div class="momento-tit">' + (momento === 'comida' ? 'Comida' : 'Cena') + '</div>' + chips +
+    '<button class="anadir" data-fecha="' + fecha + '" data-momento="' + momento + '">+ Añadir</button>' +
+  '</div>';
 }
 
 // El backend puede devolver la fecha como 'YYYY-MM-DD' o como fecha ISO
@@ -1146,12 +1303,13 @@ function renderResultadosMenu() {
 
   const cont = document.getElementById('bm-resultados');
   cont.innerHTML = resultados.length
-    ? resultados.map(function (r) {
+    ? '<div class="lista">' + resultados.map(function (r) {
         const tipos = [r.macronutriente_principal, r.grupo_alimenticio].filter(Boolean).join(' · ');
-        return '<div class="resultado-busqueda"><span>' + escapeHtml(r.nombre) +
-          (tipos ? '<br><span class="sub">' + escapeHtml(tipos) + '</span>' : '') + '</span>' +
-          '<button class="btn pequeno" data-id="' + r.id + '">Añadir</button></div>';
-      }).join('')
+        return '<div class="fila-lista"><div class="cuerpo">' +
+          '<div class="titulo">' + escapeHtml(r.nombre) + '</div>' +
+          (tipos ? '<div class="meta">' + escapeHtml(tipos) + '</div>' : '') +
+          '</div><button class="btn pequeno" data-id="' + r.id + '">Añadir</button></div>';
+      }).join('') + '</div>'
     : '<p class="vacio">Sin resultados.</p>';
 
   cont.querySelectorAll('button[data-id]').forEach(function (btn) {
@@ -1184,7 +1342,7 @@ function esComprado(item) {
 function renderCompra() {
   const cont = document.getElementById('lista-compra');
   if (!APP.listaCompra.length) {
-    cont.innerHTML = '<p class="vacio">Nada que comprar todavía. Añade recetas al menú o pulsa "Añadir a mano".</p>';
+    cont.innerHTML = '<p class="vacio">La lista está vacía.<br>Añade recetas a la semana o algo a mano.</p>';
     return;
   }
 
@@ -1192,18 +1350,24 @@ function renderCompra() {
   const pendientes = APP.listaCompra.filter(function (i) { return !esComprado(i); });
   const comprados = APP.listaCompra.filter(esComprado);
 
-  cont.innerHTML = pendientes.concat(comprados).map(function (item) {
+  function pintar(item) {
     const comprado = esComprado(item);
     const cant = (esCS(item.unidad) || item.cantidad_total === '' || item.cantidad_total == null)
       ? escapeHtml(item.unidad || '')
       : item.cantidad_total + ' ' + escapeHtml(item.unidad || '');
-    return '<div class="item-compra' + (comprado ? ' comprado' : '') + (enCola[item.id] ? ' pendiente-sync' : '') + '">' +
+    return '<div class="item' + (comprado ? ' hecho' : '') + (enCola[item.id] ? ' pendiente' : '') + '">' +
       '<input type="checkbox" data-id="' + item.id + '"' + (comprado ? ' checked' : '') + '>' +
       '<span class="nombre">' + escapeHtml(item.ingrediente) +
-        (item.origen === 'manual' ? ' <span class="etiqueta" style="font-size:10px;">a mano</span>' : '') + '</span>' +
+        (item.origen === 'manual' ? ' <span class="pill">a mano</span>' : '') + '</span>' +
       '<span class="cant">' + cant + '</span>' +
       '<button class="icono rojo" data-borrar="' + item.id + '">×</button></div>';
-  }).join('');
+  }
+
+  cont.innerHTML =
+    pendientes.map(pintar).join('') +
+    (comprados.length
+      ? '<div class="separador">En el carro · ' + comprados.length + '</div>' + comprados.map(pintar).join('')
+      : '');
 
   cont.querySelectorAll('input[type=checkbox]').forEach(function (chk) {
     chk.addEventListener('change', async function () {
@@ -1309,6 +1473,9 @@ document.getElementById('pin-input').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') validarPinYEntrar();
 });
 
+document.getElementById('titulo-pantalla').textContent = TITULOS.recetas;
+document.getElementById('pin-nombre-app').textContent = NOMBRE_APP;
+
 llenarSelect(document.getElementById('filtro-macro'), MACRONUTRIENTES, 'Cualquier macro');
 llenarSelect(document.getElementById('filtro-grupo'), GRUPOS, 'Cualquier grupo');
 
@@ -1328,6 +1495,12 @@ if (!pinGuardado() && hayConexion()) {
     .then(cargarTodo)
     .catch(mostrarErrorCarga);
 }
+
+// Línea bajo la cabecera solo cuando hay contenido desplazado.
+const cabecera = document.querySelector('header.top');
+window.addEventListener('scroll', function () {
+  cabecera.classList.toggle('scrolled', window.scrollY > 4);
+}, { passive: true });
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });

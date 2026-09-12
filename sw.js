@@ -1,4 +1,4 @@
-const CACHE_NAME = 'recetario-shell-v5';
+const CACHE_NAME = 'puchero-shell-v7';
 const SHELL_FILES = [
   './index.html',
   './manifest.json',
