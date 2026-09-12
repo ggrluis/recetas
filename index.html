@@ -304,6 +304,18 @@
   </div>
 </div>
 
+<!-- Puerta de entrada: PIN -->
+<div class="overlay" id="overlay-pin" style="align-items:center; background:var(--primary);">
+  <div class="hoja" style="border-radius:14px; margin:0 20px; max-width:340px; text-align:center;">
+    <h2 style="margin-bottom:6px;">Recetario</h2>
+    <p class="sub" style="margin:0 0 16px;">Introduce el PIN de casa</p>
+    <input type="password" id="pin-input" inputmode="numeric" autocomplete="current-password"
+           style="text-align:center; font-size:22px; letter-spacing:6px;">
+    <div id="pin-msg" style="margin-top:10px;"></div>
+    <button class="btn ancho" id="pin-entrar" style="margin-top:14px;">Entrar</button>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════════════════
 // CONFIGURACIÓN
@@ -320,6 +332,7 @@ const DIA_INICIO_PERIODO = 6; // sábado
 
 const CLAVE_CACHE = 'recetario.snapshot';
 const CLAVE_COLA  = 'recetario.cola';
+const CLAVE_PIN   = 'recetario.pin';
 
 const APP = {
   ingredientes: [], conversiones: [], recetas: [], recetaIngredientes: [],
@@ -402,11 +415,23 @@ function guardarSnapshot() {
   });
 }
 
+function pinGuardado() { return localStorage.getItem(CLAVE_PIN) || ''; }
+
+// Si el servidor rechaza el PIN, se borra el guardado y se vuelve a pedir.
+function comprobarRechazoPin(data) {
+  if (data.error === 'PIN_INVALIDO') {
+    localStorage.removeItem(CLAVE_PIN);
+    pedirPin('El PIN ya no es válido.');
+    throw new Error('PIN incorrecto');
+  }
+}
+
 async function apiGet(params) {
+  params.pin = pinGuardado();
   const r = await fetch(API_URL + '?' + new URLSearchParams(params).toString());
   if (!r.ok) throw new Error('Error de red: ' + r.status);
   const data = await r.json();
-  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  if (!data.ok) { comprobarRechazoPin(data); throw new Error(data.error || 'Error desconocido'); }
   return data;
 }
 
@@ -415,6 +440,7 @@ async function apiGet(params) {
 async function apiPost(body) {
   if (!hayConexion()) throw new Error('Sin conexión. Inténtalo cuando vuelvas a tener señal.');
   body.semana = body.semana || APP.periodo;
+  body.pin = pinGuardado();
   const r = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
@@ -422,7 +448,7 @@ async function apiPost(body) {
   });
   if (!r.ok) throw new Error('Error de red: ' + r.status);
   const data = await r.json();
-  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  if (!data.ok) { comprobarRechazoPin(data); throw new Error(data.error || 'Error desconocido'); }
   if (data.ingredientes) { aplicarSnapshot(data); guardarSnapshot(); renderTodo(); }
   return data;
 }
@@ -1116,6 +1142,39 @@ function mostrarErrorCarga(err) {
   }
 }
 
+// ── Puerta de PIN ─────────────────────────────────────────
+function pedirPin(mensaje) {
+  document.getElementById('pin-msg').innerHTML = mensaje
+    ? '<div class="msg error">' + escapeHtml(mensaje) + '</div>' : '';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('overlay-pin').classList.add('activo');
+  setTimeout(function () { document.getElementById('pin-input').focus(); }, 100);
+}
+
+async function validarPinYEntrar() {
+  const pin = document.getElementById('pin-input').value.trim();
+  if (!pin) { document.getElementById('pin-msg').innerHTML = '<div class="msg error">Escribe el PIN.</div>'; return; }
+
+  const boton = document.getElementById('pin-entrar');
+  boton.disabled = true;
+  localStorage.setItem(CLAVE_PIN, pin);
+  try {
+    await cargarTodo();
+    document.getElementById('overlay-pin').classList.remove('activo');
+  } catch (err) {
+    if (err.message !== 'PIN incorrecto') {
+      document.getElementById('pin-msg').innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+    }
+  } finally {
+    boton.disabled = false;
+  }
+}
+
+document.getElementById('pin-entrar').addEventListener('click', validarPinYEntrar);
+document.getElementById('pin-input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') validarPinYEntrar();
+});
+
 llenarSelect(document.getElementById('filtro-macro'), MACRONUTRIENTES, 'Cualquier macro');
 llenarSelect(document.getElementById('filtro-grupo'), GRUPOS, 'Cualquier grupo');
 
@@ -1125,10 +1184,16 @@ const cacheLocal = leerLocal(CLAVE_CACHE, null);
 if (cacheLocal) { aplicarSnapshot(cacheLocal); renderTodo(); }
 actualizarBanda();
 
-// 2. Reintentar lo que quedó pendiente y refrescar contra el servidor.
-vaciarCola()
-  .then(cargarTodo)
-  .catch(mostrarErrorCarga);
+// 2. Sin PIN guardado se pide; con PIN, se refresca directamente.
+//    Sin conexión no se pide PIN: se usa la caché local, que ya está
+//    en este móvil y no aporta nada protegerla otra vez.
+if (!pinGuardado() && hayConexion()) {
+  pedirPin('');
+} else {
+  vaciarCola()
+    .then(cargarTodo)
+    .catch(mostrarErrorCarga);
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
