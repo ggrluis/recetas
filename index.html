@@ -58,6 +58,10 @@
     transition:border-color .2s;
   }
   header.top.scrolled{ border-bottom-color:var(--line); }
+  header.top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .ajustes-btn{ background:none; border:none; color:var(--ink-3); padding:6px; flex-shrink:0; display:flex; align-items:center; }
+  .ajustes-btn svg{ width:21px; height:21px; }
+  .ajustes-btn:active{ color:var(--accent); }
   header.top h1{
     margin:0; font-family:'Fraunces',Georgia,serif; font-weight:500;
     font-size:27px; line-height:1.15; letter-spacing:-0.02em; color:var(--ink);
@@ -185,6 +189,27 @@
 
   .bloque{ margin-top:26px; }
 
+  /* Escalado de raciones en la ficha de receta */
+  .escala{
+    display:flex; align-items:center; gap:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+    padding:10px 14px;
+  }
+  .escala-btn{
+    width:32px; height:32px; flex-shrink:0; border:1px solid var(--line); border-radius:50%;
+    background:var(--bg); color:var(--accent); font-size:19px; line-height:1; font-weight:400;
+  }
+  .escala-btn:disabled{ opacity:.3; }
+  .escala-btn:active{ background:var(--accent-bg); }
+  .escala-valor{ flex:1; text-align:center; line-height:1.2; }
+  .escala-valor strong{ font-family:'Fraunces',Georgia,serif; font-size:19px; font-weight:500; display:block; }
+  .escala-valor span{ font-size:11.5px; color:var(--ink-3); }
+  .escala-reset{
+    background:none; border:none; color:var(--accent); font-size:12px; font-weight:500;
+    padding:4px 2px; flex-shrink:0; visibility:hidden;
+  }
+  .escala-reset.visible{ visibility:visible; }
+
   /* ── Ingredientes dentro de la receta ──────────────────── */
   .ing-fila{ margin-bottom:10px; }
   .ing-linea{ display:flex; gap:8px; align-items:flex-end; }
@@ -195,6 +220,10 @@
   .msg{ font-size:13px; padding:11px 13px; border-radius:10px; margin-top:12px; line-height:1.45; }
   .msg.error{ background:#F5E6E1; color:var(--danger); }
   .msg.aviso{ background:var(--warm-bg); color:var(--warm); }
+  .enlace{
+    background:none; border:none; padding:0; color:inherit; font-size:inherit;
+    font-weight:600; text-decoration:underline; text-underline-offset:2px;
+  }
 
   /* ── Banda de estado (offline / sincronizando) ─────────── */
   .banda-estado{
@@ -269,6 +298,12 @@
 
 <header class="top">
   <h1 id="titulo-pantalla">Puchero</h1>
+  <button class="ajustes-btn" id="abrir-ajustes" aria-label="Ajustes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>
+    </svg>
+  </button>
 </header>
 <div class="banda-estado" id="banda-estado"></div>
 
@@ -292,16 +327,21 @@
 
   <section class="pantalla" id="pantalla-menu">
     <div class="periodo-nav">
-      <button id="periodo-anterior" aria-label="Periodo anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button data-periodo="-1" aria-label="Periodo anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
       <strong id="periodo-label"></strong>
-      <button id="periodo-siguiente" aria-label="Periodo siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      <button data-periodo="1" aria-label="Periodo siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
     <div id="grid-menu"></div>
   </section>
 
   <section class="pantalla" id="pantalla-compra">
-    <p class="sub" style="margin-top:0;" id="compra-periodo-label"></p>
-    <button class="btn secundario ancho" id="btn-anadir-manual" style="margin-bottom:14px;">+ Añadir a mano</button>
+    <div class="periodo-nav">
+      <button data-periodo="-1" aria-label="Periodo anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <strong id="compra-periodo-label"></strong>
+      <button data-periodo="1" aria-label="Periodo siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <div id="compra-aviso-pasado"></div>
+    <button class="btn secundario ancho" id="btn-anadir-manual" style="margin:14px 0;">+ Añadir a mano</button>
     <div id="lista-compra"></div>
   </section>
 
@@ -339,8 +379,16 @@
       <h2 id="detalle-nombre"></h2>
       <button class="cerrar" data-cerrar="overlay-detalle">×</button>
     </div>
-    <div id="detalle-etiquetas" style="margin-bottom:8px;"></div>
-    <p class="sub" id="detalle-personas"></p>
+    <div id="detalle-etiquetas" style="margin-bottom:12px;"></div>
+    <div class="escala">
+      <button class="escala-btn" id="escala-menos" aria-label="Menos personas">−</button>
+      <div class="escala-valor">
+        <strong id="escala-num">4</strong>
+        <span id="escala-txt">personas</span>
+      </div>
+      <button class="escala-btn" id="escala-mas" aria-label="Más personas">+</button>
+      <button class="escala-reset" id="escala-reset">Original</button>
+    </div>
     <h3 style="margin-top:16px;">Ingredientes</h3>
     <ul id="detalle-ingredientes" style="padding-left:18px; margin:6px 0 0;"></ul>
     <h3 style="margin-top:18px;">Preparación</h3>
@@ -453,6 +501,44 @@
   </div>
 </div>
 
+<!-- Ajustes -->
+<div class="overlay" id="overlay-ajustes">
+  <div class="hoja">
+    <div class="hoja-cabecera">
+      <h2>Ajustes</h2>
+      <button class="cerrar" data-cerrar="overlay-ajustes">×</button>
+    </div>
+    <div id="ajustes-msg"></div>
+
+    <h3>Semana de la compra</h3>
+    <p class="sub" style="margin:0 0 14px;">Marca qué comidas entran en cada lista de la compra.</p>
+
+    <label>Empieza el</label>
+    <select id="aj-dia">
+      <option value="1">lunes</option><option value="2">martes</option>
+      <option value="3">miércoles</option><option value="4">jueves</option>
+      <option value="5">viernes</option><option value="6">sábado</option>
+      <option value="0">domingo</option>
+    </select>
+
+    <label style="margin-top:14px;">A partir de</label>
+    <select id="aj-momento">
+      <option value="cena">la cena (ese día queda partido)</option>
+      <option value="comida">la comida (ese día entra entero)</option>
+    </select>
+
+    <p class="sub" id="aj-resumen" style="margin-top:14px;"></p>
+
+    <div class="msg aviso" style="margin-top:16px;">
+      Cambiar esto reagrupa los menús que ya tengas en periodos distintos.
+      Las listas se recalculan solas, pero lo que hubieras añadido a mano o
+      marcado como comprado en periodos anteriores dejará de verse.
+    </div>
+
+    <div style="margin-top:18px;"><button class="btn ancho" id="aj-guardar">Guardar ajustes</button></div>
+  </div>
+</div>
+
 <!-- Puerta de entrada: PIN -->
 <div class="overlay" id="overlay-pin" style="align-items:center; background:var(--primary);">
   <div class="hoja" style="border-radius:14px; margin:0 20px; max-width:340px; text-align:center;">
@@ -475,9 +561,9 @@ const MACRONUTRIENTES = ['Proteína', 'Hidrato', 'Grasa'];
 const GRUPOS = ['Verdura', 'Fruta', 'Legumbre', 'Cereal', 'Lácteo', 'Fruto seco', 'Proteína animal', 'Grasa/aceite', 'Otro'];
 const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-// Día en que arranca el periodo de compra (0=domingo ... 6=sábado).
-// Para cambiarlo, toca esta línea y la misma constante en GeneradorRecetas.gs.
-const DIA_INICIO_PERIODO = 6; // sábado
+// El periodo lo define el servidor (se cambia en Ajustes). Estos son solo
+// los valores con los que arrancar antes de la primera descarga.
+const AJUSTES_POR_DEFECTO = { dia_inicio: 6, momento_inicio: 'cena' };
 
 // Unidad cualitativa: "cantidad suficiente". Ni se mide ni se suma.
 const UNIDAD_CS = 'c/s';
@@ -490,7 +576,9 @@ const CLAVE_PIN   = 'recetario.pin';
 const APP = {
   ingredientes: [], conversiones: [], recetas: [], recetaIngredientes: [],
   menuSemana: [], listaCompra: [], avisos: [], periodo: '', offset: 0,
-  editandoReceta: null, editandoIngrediente: null, cargando: false
+  editandoReceta: null, editandoIngrediente: null, cargando: false,
+  detallePersonas: 4,
+  ajustes: { dia_inicio: AJUSTES_POR_DEFECTO.dia_inicio, momento_inicio: AJUSTES_POR_DEFECTO.momento_inicio }
 };
 
 // ════════════════════════════════════════════════════════════
@@ -503,23 +591,26 @@ function fechaISO(d) {
 function inicioDePeriodo(offset) {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  const diasDesdeInicio = (hoy.getDay() - DIA_INICIO_PERIODO + 7) % 7;
+  const diasDesdeInicio = (hoy.getDay() - APP.ajustes.dia_inicio + 7) % 7;
   const inicio = new Date(hoy);
   inicio.setDate(hoy.getDate() - diasDesdeInicio + offset * 7);
   return inicio;
 }
 
-// 8 días: el primero solo cena, el último solo comida.
+// Con inicio en cena: 8 días, el primero solo cena y el último solo comida.
+// Con inicio en comida: 7 días completos.
 function diasDelPeriodo(offset) {
   const inicio = inicioDePeriodo(offset);
   const hoyStr = fechaISO(new Date());
+  const parte = APP.ajustes.momento_inicio === 'cena';
+  const total = parte ? 8 : 7;
   const dias = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < total; i++) {
     const d = new Date(inicio);
     d.setDate(inicio.getDate() + i);
     let momentos;
-    if (i === 0) momentos = ['cena'];
-    else if (i === 7) momentos = ['comida'];
+    if (parte && i === 0) momentos = ['cena'];
+    else if (parte && i === total - 1) momentos = ['comida'];
     else momentos = ['comida', 'cena'];
     dias.push({
       fecha: fechaISO(d),
@@ -556,6 +647,7 @@ function aplicarSnapshot(data) {
   APP.menuSemana = data.menuSemana || [];
   APP.listaCompra = data.listaCompra || [];
   APP.avisos = data.avisos || [];
+  if (data.ajustes) APP.ajustes = data.ajustes;
   APP.periodo = data.semana || APP.periodo;
 }
 
@@ -564,7 +656,7 @@ function guardarSnapshot() {
     ingredientes: APP.ingredientes, conversiones: APP.conversiones,
     recetas: APP.recetas, recetaIngredientes: APP.recetaIngredientes,
     menuSemana: APP.menuSemana, listaCompra: APP.listaCompra,
-    avisos: APP.avisos, semana: APP.periodo
+    avisos: APP.avisos, ajustes: APP.ajustes, semana: APP.periodo
   });
 }
 
@@ -778,29 +870,70 @@ document.getElementById('buscar-receta').addEventListener('input', renderRecetas
 document.getElementById('filtro-macro').addEventListener('change', renderRecetas);
 document.getElementById('filtro-grupo').addEventListener('change', renderRecetas);
 
-function abrirDetalleReceta(id) {
+// personas: con cuántos comensales abrir la ficha. Si no se indica, con
+// los que se guardó la receta.
+function abrirDetalleReceta(id, personas) {
   const receta = APP.recetas.filter(function (r) { return r.id === id; })[0];
   if (!receta) return;
   APP.editandoReceta = id;
+  APP.detallePersonas = Number(personas) || Number(receta.personas_base) || 1;
 
   document.getElementById('detalle-nombre').textContent = receta.nombre;
-  document.getElementById('detalle-personas').textContent = 'Cantidades para ' + receta.personas_base + ' personas.';
   document.getElementById('detalle-etiquetas').innerHTML =
     (receta.macronutriente_principal ? '<span class="pill">' + escapeHtml(receta.macronutriente_principal) + '</span>' : '') +
     (receta.grupo_alimenticio ? '<span class="pill">' + escapeHtml(receta.grupo_alimenticio) + '</span>' : '');
-
-  const ings = APP.recetaIngredientes.filter(function (ri) { return ri.id_receta === id; });
-  document.getElementById('detalle-ingredientes').innerHTML = ings.length
-    ? ings.map(function (ri) {
-        const medida = esCS(ri.unidad_usada) ? 'c/s' : ri.cantidad_para_personas_base + ' ' + escapeHtml(ri.unidad_usada);
-        return '<li>' + medida + ' · ' + escapeHtml(nombreIngrediente(ri.id_ingrediente)) + '</li>';
-      }).join('')
-    : '<li>Sin ingredientes.</li>';
-
   document.getElementById('detalle-instrucciones').textContent = receta.instrucciones || 'Sin instrucciones todavía.';
+
+  renderDetalleEscalado();
   document.getElementById('overlay-detalle').classList.add('activo');
 }
 
+// Redondeo legible: 150 y no 150.00, 62.5 y no 62.49999.
+function cantidadLegible(n) {
+  const v = Math.round(Number(n) * 10) / 10;
+  return (Math.abs(v - Math.round(v)) < 0.05) ? String(Math.round(v)) : String(v);
+}
+
+// Recalcula ingredientes para APP.detallePersonas. Es solo visual: no
+// toca la receta guardada ni la lista de la compra.
+function renderDetalleEscalado() {
+  const receta = APP.recetas.filter(function (r) { return r.id === APP.editandoReceta; })[0];
+  if (!receta) return;
+
+  const base = Number(receta.personas_base) || 1;
+  const personas = APP.detallePersonas;
+  const factor = personas / base;
+
+  document.getElementById('escala-num').textContent = personas;
+  document.getElementById('escala-txt').textContent =
+    (personas === 1 ? 'persona' : 'personas') + (personas === base ? '' : ' · original: ' + base);
+  document.getElementById('escala-menos').disabled = personas <= 1;
+  document.getElementById('escala-reset').classList.toggle('visible', personas !== base);
+
+  const ings = APP.recetaIngredientes.filter(function (ri) { return ri.id_receta === receta.id; });
+  document.getElementById('detalle-ingredientes').innerHTML = ings.length
+    ? ings.map(function (ri) {
+        const medida = esCS(ri.unidad_usada)
+          ? 'c/s'
+          : cantidadLegible(Number(ri.cantidad_para_personas_base) * factor) + ' ' + escapeHtml(ri.unidad_usada);
+        return '<li><strong>' + medida + '</strong> · ' + escapeHtml(nombreIngrediente(ri.id_ingrediente)) + '</li>';
+      }).join('')
+    : '<li>Sin ingredientes.</li>';
+}
+
+document.getElementById('escala-menos').addEventListener('click', function () {
+  if (APP.detallePersonas > 1) { APP.detallePersonas--; renderDetalleEscalado(); }
+});
+document.getElementById('escala-mas').addEventListener('click', function () {
+  if (APP.detallePersonas < 50) { APP.detallePersonas++; renderDetalleEscalado(); }
+});
+document.getElementById('escala-reset').addEventListener('click', function () {
+  const receta = APP.recetas.filter(function (r) { return r.id === APP.editandoReceta; })[0];
+  if (receta) { APP.detallePersonas = Number(receta.personas_base) || 1; renderDetalleEscalado(); }
+});
+
+// Al editar se abre siempre la receta tal y como está guardada: lo que se
+// ve escalado es una vista, no un cambio.
 document.getElementById('detalle-editar').addEventListener('click', function () {
   document.getElementById('overlay-detalle').classList.remove('activo');
   abrirFormularioReceta(APP.editandoReceta);
@@ -1214,13 +1347,37 @@ function renderAvisos() {
 // ════════════════════════════════════════════════════════════
 // MENÚ
 // ════════════════════════════════════════════════════════════
-document.getElementById('periodo-anterior').addEventListener('click', function () { APP.offset--; cargarTodo().catch(mostrarErrorCarga); });
-document.getElementById('periodo-siguiente').addEventListener('click', function () { APP.offset++; cargarTodo().catch(mostrarErrorCarga); });
+// Semana y Compra comparten el mismo periodo: moverse en una mueve la otra.
+document.querySelectorAll('[data-periodo]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    APP.offset += Number(btn.dataset.periodo);
+    cargarTodo().catch(mostrarErrorCarga);
+  });
+});
 
 function renderMenu() {
   const dias = diasDelPeriodo(APP.offset);
-  document.getElementById('periodo-label').textContent = dias[0].corta + ' cena → ' + dias[7].corta + ' comida';
-  document.getElementById('compra-periodo-label').textContent = 'Periodo del ' + dias[0].corta + ' al ' + dias[7].corta;
+  const ult = dias[dias.length - 1];
+  const parte = APP.ajustes.momento_inicio === 'cena';
+  document.getElementById('periodo-label').textContent = parte
+    ? dias[0].corta + ' cena → ' + ult.corta + ' comida'
+    : dias[0].corta + ' → ' + ult.corta;
+  document.getElementById('compra-periodo-label').textContent = dias[0].corta + ' – ' + ult.corta;
+
+  // Al mirar un periodo que no es el de esta semana, avisarlo: si no, es
+  // fácil marcar la compra equivocada sin darse cuenta.
+  const avisoPasado = document.getElementById('compra-aviso-pasado');
+  if (APP.offset === 0) {
+    avisoPasado.innerHTML = '';
+  } else {
+    avisoPasado.innerHTML = '<div class="msg aviso">' +
+      (APP.offset < 0 ? 'Estás viendo una lista anterior.' : 'Estás viendo una lista futura.') +
+      ' <button class="enlace" id="volver-actual">Ir a la de ahora</button></div>';
+    document.getElementById('volver-actual').addEventListener('click', function () {
+      APP.offset = 0;
+      cargarTodo().catch(mostrarErrorCarga);
+    });
+  }
 
   const cont = document.getElementById('grid-menu');
   cont.innerHTML = dias.map(function (dia) {
@@ -1241,6 +1398,15 @@ function renderMenu() {
     });
   });
 
+  // Tocar el nombre abre la receta ya escalada a los comensales de ese día.
+  cont.querySelectorAll('[data-ver]').forEach(function (el) {
+    if (!el.dataset.ver) return;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function () {
+      abrirDetalleReceta(el.dataset.ver, el.dataset.pers);
+    });
+  });
+
   cont.querySelectorAll('.anadir').forEach(function (btn) {
     btn.addEventListener('click', function () { abrirBuscadorMenu(btn.dataset.fecha, btn.dataset.momento); });
   });
@@ -1250,8 +1416,10 @@ function renderMomento(fecha, momento) {
   const items = APP.menuSemana.filter(function (m) { return String(fechaDeFila(m.fecha)) === fecha && m.momento === momento; });
   const chips = items.map(function (m) {
     const receta = APP.recetas.filter(function (r) { return r.id === m.id_receta; })[0];
-    return '<div class="chip"><span>' + escapeHtml(receta ? receta.nombre : '(eliminada)') +
-      ' <span class="sub">· ' + m.personas_ese_dia + '</span></span>' +
+    return '<div class="chip">' +
+      '<span data-ver="' + (receta ? receta.id : '') + '" data-pers="' + m.personas_ese_dia + '">' +
+        escapeHtml(receta ? receta.nombre : '(eliminada)') +
+        ' <span class="sub">· ' + m.personas_ese_dia + '</span></span>' +
       '<button class="icono rojo" data-quitar="' + m.id + '">×</button></div>';
   }).join('');
 
@@ -1439,6 +1607,56 @@ function mostrarErrorCarga(err) {
     cont.innerHTML = '<div class="msg error">No se pudo conectar: ' + escapeHtml(err.message) + '</div>';
   }
 }
+
+// ── Ajustes ───────────────────────────────────────────────
+const NOMBRES_DIA = { 0:'domingo', 1:'lunes', 2:'martes', 3:'miércoles', 4:'jueves', 5:'viernes', 6:'sábado' };
+
+function resumenPeriodo(dia, momento) {
+  const d = NOMBRES_DIA[Number(dia)];
+  return momento === 'cena'
+    ? 'De la cena del ' + d + ' a la comida del ' + d + ' siguiente.'
+    : 'Del ' + d + ' entero hasta el día antes del ' + d + ' siguiente.';
+}
+
+function refrescarResumenAjustes() {
+  document.getElementById('aj-resumen').textContent = resumenPeriodo(
+    document.getElementById('aj-dia').value,
+    document.getElementById('aj-momento').value
+  );
+}
+
+document.getElementById('abrir-ajustes').addEventListener('click', function () {
+  document.getElementById('aj-dia').value = String(APP.ajustes.dia_inicio);
+  document.getElementById('aj-momento').value = APP.ajustes.momento_inicio;
+  document.getElementById('ajustes-msg').innerHTML = '';
+  refrescarResumenAjustes();
+  document.getElementById('overlay-ajustes').classList.add('activo');
+});
+
+document.getElementById('aj-dia').addEventListener('change', refrescarResumenAjustes);
+document.getElementById('aj-momento').addEventListener('change', refrescarResumenAjustes);
+
+document.getElementById('aj-guardar').addEventListener('click', async function () {
+  const dia = Number(document.getElementById('aj-dia').value);
+  const momento = document.getElementById('aj-momento').value;
+  if (dia === APP.ajustes.dia_inicio && momento === APP.ajustes.momento_inicio) {
+    document.getElementById('overlay-ajustes').classList.remove('activo');
+    return;
+  }
+
+  const boton = document.getElementById('aj-guardar');
+  boton.disabled = true;
+  try {
+    await apiPost({ accion: 'guardarAjustes', dia_inicio: dia, momento_inicio: momento });
+    APP.offset = 0;          // las claves de periodo han cambiado
+    await cargarTodo();
+    document.getElementById('overlay-ajustes').classList.remove('activo');
+  } catch (err) {
+    document.getElementById('ajustes-msg').innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+  } finally {
+    boton.disabled = false;
+  }
+});
 
 // ── Puerta de PIN ─────────────────────────────────────────
 function pedirPin(mensaje) {

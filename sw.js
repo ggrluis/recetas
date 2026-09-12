@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puchero-shell-v7';
+const CACHE_NAME = 'puchero-shell-v10';
 const SHELL_FILES = [
   './index.html',
   './manifest.json',
