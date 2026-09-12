@@ -258,8 +258,13 @@
   }
   .momento{ margin-top:12px; }
   .momento-tit{ font-size:10.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; }
+  .chip-nombre{ flex:1; min-width:0; }
+  .chip-pers{
+    background:var(--accent-bg); border:none; border-radius:99px; color:var(--accent);
+    font-size:11.5px; font-weight:500; padding:3px 9px; flex-shrink:0;
+  }
   .chip{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
     background:var(--surface); border:1px solid var(--line); border-radius:10px;
     padding:10px 12px; margin-bottom:6px; font-size:14px;
   }
@@ -475,10 +480,7 @@
       <select id="bm-macro" class="col"></select>
       <select id="bm-grupo" class="col"></select>
     </div>
-    <div class="fila" style="margin-bottom:10px;">
-      <label style="flex:0; white-space:nowrap; margin:0 8px 0 0;">Personas</label>
-      <input type="number" id="bm-personas" value="4" min="1" style="max-width:90px;">
-    </div>
+    <p class="sub" id="bm-nota" style="margin:0 0 12px;"></p>
     <div id="bm-resultados"></div>
   </div>
 </div>
@@ -498,6 +500,24 @@
       <div class="col"><label>Unidad (opcional)</label><input type="text" id="cm-unidad" placeholder="paquetes"></div>
     </div>
     <div style="margin-top:16px;"><button class="btn ancho" id="cm-guardar">Añadir</button></div>
+  </div>
+</div>
+
+<!-- Comensales de una comida concreta -->
+<div class="overlay" id="overlay-comensales">
+  <div class="hoja">
+    <div class="hoja-cabecera">
+      <h2>¿Cuántos coméis?</h2>
+      <button class="cerrar" data-cerrar="overlay-comensales">×</button>
+    </div>
+    <p class="sub" id="com-contexto" style="margin:0 0 14px;"></p>
+    <div class="escala">
+      <button class="escala-btn" id="com-menos" aria-label="Menos">−</button>
+      <div class="escala-valor"><strong id="com-num">4</strong><span>comensales</span></div>
+      <button class="escala-btn" id="com-mas" aria-label="Más">+</button>
+    </div>
+    <div id="com-msg"></div>
+    <div style="margin-top:18px;"><button class="btn ancho" id="com-guardar">Guardar</button></div>
   </div>
 </div>
 
@@ -528,6 +548,10 @@
     </select>
 
     <p class="sub" id="aj-resumen" style="margin-top:14px;"></p>
+
+    <h3 style="margin-top:26px;">Comensales habituales</h3>
+    <p class="sub" style="margin:0 0 10px;">Con cuántos se añade una comida al menú. Se puede cambiar comida a comida.</p>
+    <input type="number" id="aj-comensales" min="1" max="50">
 
     <div class="msg aviso" style="margin-top:16px;">
       Cambiar esto reagrupa los menús que ya tengas en periodos distintos.
@@ -563,7 +587,7 @@ const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sáb
 
 // El periodo lo define el servidor (se cambia en Ajustes). Estos son solo
 // los valores con los que arrancar antes de la primera descarga.
-const AJUSTES_POR_DEFECTO = { dia_inicio: 6, momento_inicio: 'cena' };
+const AJUSTES_POR_DEFECTO = { dia_inicio: 6, momento_inicio: 'cena', comensales: 4 };
 
 // Unidad cualitativa: "cantidad suficiente". Ni se mide ni se suma.
 const UNIDAD_CS = 'c/s';
@@ -578,7 +602,11 @@ const APP = {
   menuSemana: [], listaCompra: [], avisos: [], periodo: '', offset: 0,
   editandoReceta: null, editandoIngrediente: null, cargando: false,
   detallePersonas: 4,
-  ajustes: { dia_inicio: AJUSTES_POR_DEFECTO.dia_inicio, momento_inicio: AJUSTES_POR_DEFECTO.momento_inicio }
+  ajustes: {
+    dia_inicio: AJUSTES_POR_DEFECTO.dia_inicio,
+    momento_inicio: AJUSTES_POR_DEFECTO.momento_inicio,
+    comensales: AJUSTES_POR_DEFECTO.comensales
+  }
 };
 
 // ════════════════════════════════════════════════════════════
@@ -1398,6 +1426,13 @@ function renderMenu() {
     });
   });
 
+  // Tocar el número cambia los comensales solo de esa comida.
+  cont.querySelectorAll('.chip-pers').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      abrirComensales(btn.dataset.menu, Number(btn.dataset.pers));
+    });
+  });
+
   // Tocar el nombre abre la receta ya escalada a los comensales de ese día.
   cont.querySelectorAll('[data-ver]').forEach(function (el) {
     if (!el.dataset.ver) return;
@@ -1417,9 +1452,10 @@ function renderMomento(fecha, momento) {
   const chips = items.map(function (m) {
     const receta = APP.recetas.filter(function (r) { return r.id === m.id_receta; })[0];
     return '<div class="chip">' +
-      '<span data-ver="' + (receta ? receta.id : '') + '" data-pers="' + m.personas_ese_dia + '">' +
-        escapeHtml(receta ? receta.nombre : '(eliminada)') +
-        ' <span class="sub">· ' + m.personas_ese_dia + '</span></span>' +
+      '<span class="chip-nombre" data-ver="' + (receta ? receta.id : '') + '" data-pers="' + m.personas_ese_dia + '">' +
+        escapeHtml(receta ? receta.nombre : '(eliminada)') + '</span>' +
+      '<button class="chip-pers" data-menu="' + m.id + '" data-pers="' + m.personas_ese_dia + '">' +
+        m.personas_ese_dia + ' pers.</button>' +
       '<button class="icono rojo" data-quitar="' + m.id + '">×</button></div>';
   }).join('');
 
@@ -1443,6 +1479,9 @@ function abrirBuscadorMenu(fecha, momento) {
   document.getElementById('buscar-menu-titulo').textContent =
     (momento === 'comida' ? 'Comida' : 'Cena') + ' del ' + fecha.slice(8) + '/' + fecha.slice(5, 7);
   document.getElementById('bm-buscar').value = '';
+  document.getElementById('bm-nota').textContent =
+    'Se añadirá para ' + APP.ajustes.comensales +
+    (APP.ajustes.comensales === 1 ? ' persona' : ' personas') + '. Luego puedes cambiarlo tocando el número.';
   document.getElementById('bm-macro').innerHTML = '';
   document.getElementById('bm-grupo').innerHTML = '';
   llenarSelect(document.getElementById('bm-macro'), MACRONUTRIENTES, 'Cualquier macro');
@@ -1489,7 +1528,7 @@ function renderResultadosMenu() {
           fecha: destinoMenu.fecha,
           momento: destinoMenu.momento,
           id_receta: btn.dataset.id,
-          personas_ese_dia: Number(document.getElementById('bm-personas').value) || 4
+          personas_ese_dia: APP.ajustes.comensales
         });
         document.getElementById('overlay-buscar-menu').classList.remove('activo');
       } catch (err) {
@@ -1608,6 +1647,50 @@ function mostrarErrorCarga(err) {
   }
 }
 
+// ── Comensales de una comida concreta ────────────────────
+let menuEditandoPersonas = { id: null, personas: 4 };
+
+function abrirComensales(idMenu, personas) {
+  menuEditandoPersonas = { id: idMenu, personas: personas };
+  const fila = APP.menuSemana.filter(function (m) { return m.id === idMenu; })[0];
+  const receta = fila ? APP.recetas.filter(function (r) { return r.id === fila.id_receta; })[0] : null;
+  document.getElementById('com-contexto').textContent = receta
+    ? receta.nombre + ' · ' + (fila.momento === 'comida' ? 'comida' : 'cena')
+    : '';
+  document.getElementById('com-msg').innerHTML = '';
+  pintarComensales();
+  document.getElementById('overlay-comensales').classList.add('activo');
+}
+
+function pintarComensales() {
+  document.getElementById('com-num').textContent = menuEditandoPersonas.personas;
+  document.getElementById('com-menos').disabled = menuEditandoPersonas.personas <= 1;
+}
+
+document.getElementById('com-menos').addEventListener('click', function () {
+  if (menuEditandoPersonas.personas > 1) { menuEditandoPersonas.personas--; pintarComensales(); }
+});
+document.getElementById('com-mas').addEventListener('click', function () {
+  if (menuEditandoPersonas.personas < 50) { menuEditandoPersonas.personas++; pintarComensales(); }
+});
+
+document.getElementById('com-guardar').addEventListener('click', async function () {
+  const boton = document.getElementById('com-guardar');
+  boton.disabled = true;
+  try {
+    await apiPost({
+      accion: 'cambiarPersonasMenu',
+      id_menu: menuEditandoPersonas.id,
+      personas: menuEditandoPersonas.personas
+    });
+    document.getElementById('overlay-comensales').classList.remove('activo');
+  } catch (err) {
+    document.getElementById('com-msg').innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+  } finally {
+    boton.disabled = false;
+  }
+});
+
 // ── Ajustes ───────────────────────────────────────────────
 const NOMBRES_DIA = { 0:'domingo', 1:'lunes', 2:'martes', 3:'miércoles', 4:'jueves', 5:'viernes', 6:'sábado' };
 
@@ -1628,6 +1711,7 @@ function refrescarResumenAjustes() {
 document.getElementById('abrir-ajustes').addEventListener('click', function () {
   document.getElementById('aj-dia').value = String(APP.ajustes.dia_inicio);
   document.getElementById('aj-momento').value = APP.ajustes.momento_inicio;
+  document.getElementById('aj-comensales').value = APP.ajustes.comensales;
   document.getElementById('ajustes-msg').innerHTML = '';
   refrescarResumenAjustes();
   document.getElementById('overlay-ajustes').classList.add('activo');
@@ -1639,7 +1723,13 @@ document.getElementById('aj-momento').addEventListener('change', refrescarResume
 document.getElementById('aj-guardar').addEventListener('click', async function () {
   const dia = Number(document.getElementById('aj-dia').value);
   const momento = document.getElementById('aj-momento').value;
-  if (dia === APP.ajustes.dia_inicio && momento === APP.ajustes.momento_inicio) {
+  const comensales = Number(document.getElementById('aj-comensales').value);
+
+  if (!(comensales >= 1 && comensales <= 50)) {
+    document.getElementById('ajustes-msg').innerHTML = '<div class="msg error">Comensales entre 1 y 50.</div>';
+    return;
+  }
+  if (dia === APP.ajustes.dia_inicio && momento === APP.ajustes.momento_inicio && comensales === APP.ajustes.comensales) {
     document.getElementById('overlay-ajustes').classList.remove('activo');
     return;
   }
@@ -1647,7 +1737,7 @@ document.getElementById('aj-guardar').addEventListener('click', async function (
   const boton = document.getElementById('aj-guardar');
   boton.disabled = true;
   try {
-    await apiPost({ accion: 'guardarAjustes', dia_inicio: dia, momento_inicio: momento });
+    await apiPost({ accion: 'guardarAjustes', dia_inicio: dia, momento_inicio: momento, comensales: comensales });
     APP.offset = 0;          // las claves de periodo han cambiado
     await cargarTodo();
     document.getElementById('overlay-ajustes').classList.remove('activo');
