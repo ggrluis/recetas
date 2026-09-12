@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16424B">
+<title>Recetario</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FAF9F5;
+    --surface: #FFFFFF;
+    --primary: #16424B;
+    --primary-soft: #E8EEEC;
+    --accent: #C08A34;
+    --ink: #211F1B;
+    --ink-muted: #7A7468;
+    --line: #E6E2D8;
+    --danger: #A8442D;
+    --success: #3F6B4E;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); }
+  body{
+    font-family:'IBM Plex Sans',sans-serif; font-size:15px; line-height:1.5;
+    padding-bottom:calc(66px + env(safe-area-inset-bottom)); min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Fraunces',serif; font-weight:500; margin:0 0 4px; color:var(--ink); letter-spacing:-0.01em; }
+  h1{ font-size:21px; } h2{ font-size:18px; }
+  h3{ font-size:13px; color:var(--ink-muted); font-family:'IBM Plex Sans',sans-serif; font-weight:600; letter-spacing:0.02em; text-transform:uppercase; }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select,textarea{ font-family:inherit; font-size:15px; }
+
+  header.top{ padding:22px 20px 16px; background:var(--primary); color:#F4F1E9; border-bottom:3px solid var(--accent); }
+  header.top h1{ color:#FBFAF5; }
+  header.top p{ margin:3px 0 0; font-size:13px; color:#B9CDC9; }
+
+  main{ padding:18px 16px; max-width:560px; margin:0 auto; }
+
+  nav.tabs{
+    position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:space-around;
+    background:var(--surface); border-top:1px solid var(--line);
+    padding:8px 4px calc(8px + env(safe-area-inset-bottom)); z-index:20;
+  }
+  nav.tabs button{ flex:1; background:none; border:none; padding:6px 2px; font-size:12px; color:var(--ink-muted); }
+  nav.tabs button.activo{ color:var(--primary); font-weight:600; }
+
+  .pantalla{ display:none; }
+  .pantalla.activa{ display:block; }
+
+  .ficha{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:8px; }
+  .ficha-cab{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .etiquetas{ display:flex; gap:6px; margin:6px 0 0; flex-wrap:wrap; }
+  .etiqueta{ font-size:11px; padding:2px 9px; border-radius:20px; background:var(--primary-soft); color:var(--primary); }
+  .etiqueta.aviso{ background:#F6EBD9; color:#8A5D12; }
+
+  .fila{ display:flex; gap:10px; align-items:center; }
+  .fila + .fila{ margin-top:10px; }
+  .col{ flex:1; }
+
+  label{ display:block; font-size:12.5px; color:var(--ink-muted); margin-bottom:4px; }
+  input[type=text],input[type=number],select,textarea{
+    width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{ outline:2px solid var(--primary); outline-offset:1px; }
+  textarea{ min-height:110px; resize:vertical; }
+
+  .btn{ display:inline-block; padding:10px 16px; border-radius:8px; border:1px solid var(--primary); background:var(--primary); color:#fff; font-size:14px; font-weight:500; }
+  .btn.secundario{ background:transparent; color:var(--primary); }
+  .btn.peligro{ background:transparent; color:var(--danger); border-color:var(--danger); }
+  .btn.pequeno{ padding:6px 12px; font-size:12.5px; }
+  .btn.ancho{ width:100%; }
+  .btn:disabled{ opacity:.5; }
+
+  .icono{ background:none; border:none; color:var(--ink-muted); font-size:15px; padding:2px 6px; line-height:1; }
+  .icono.rojo{ color:var(--danger); }
+
+  .fab{
+    position:fixed; right:18px; bottom:calc(80px + env(safe-area-inset-bottom));
+    width:50px; height:50px; border-radius:50%; background:var(--primary); color:#fff;
+    border:none; font-size:24px; font-weight:300; box-shadow:0 2px 8px rgba(22,66,75,.35); z-index:19;
+  }
+
+  .buscador{ margin-bottom:14px; }
+  .vacio{ text-align:center; color:var(--ink-muted); padding:34px 10px; font-size:14px; }
+
+  .overlay{ display:none; position:fixed; inset:0; background:rgba(20,20,15,.35); z-index:30; align-items:flex-end; }
+  .overlay.activo{ display:flex; }
+  .hoja{ background:var(--bg); width:100%; max-height:92vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:20px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .hoja-cabecera{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:10px; }
+  .cerrar{ background:none; border:none; font-size:22px; color:var(--ink-muted); padding:4px 8px; line-height:1; }
+
+  .ing-fila{ display:flex; gap:6px; align-items:flex-end; margin-bottom:8px; }
+  .ing-fila .col{ flex:2; }
+  .ing-fila .col.cant{ flex:1; }
+
+  .msg{ font-size:13px; padding:9px 11px; border-radius:8px; margin-bottom:12px; }
+  .msg.error{ background:#F3E3DC; color:var(--danger); }
+  .msg.aviso{ background:#F6EBD9; color:#8A5D12; }
+  .msg.ok{ background:#E3EBE5; color:var(--success); }
+
+  .banda-estado{ font-size:12.5px; padding:7px 16px; text-align:center; display:none; }
+  .banda-estado.visible{ display:block; }
+  .banda-estado.offline{ background:#F6EBD9; color:#8A5D12; }
+  .banda-estado.sync{ background:var(--primary-soft); color:var(--primary); }
+
+  .periodo-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; font-size:13px; gap:8px; }
+  .periodo-nav button{ background:none; border:none; color:var(--primary); font-weight:500; padding:4px 2px; white-space:nowrap; }
+  .periodo-nav strong{ font-weight:500; text-align:center; }
+  .dia-bloque{ padding:12px 0; border-bottom:1px solid var(--line); }
+  .dia-bloque:last-child{ border-bottom:none; }
+  .dia-titulo{ font-family:'Fraunces',serif; font-weight:500; font-size:15px; margin-bottom:2px; text-transform:capitalize; }
+  .dia-titulo.hoy::after{ content:'hoy'; font-family:'IBM Plex Sans',sans-serif; font-size:10px; background:var(--accent); color:#fff; padding:1px 7px; border-radius:20px; margin-left:8px; vertical-align:middle; }
+  .momento-titulo{ font-size:11px; color:var(--ink-muted); margin:10px 0 5px; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; }
+  .chip-receta{ display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px 11px; margin-bottom:6px; font-size:13.5px; gap:8px; }
+  .add-momento{ background:none; border:1px dashed var(--line); border-radius:8px; width:100%; padding:8px; font-size:13px; color:var(--primary); }
+
+  .item-compra{ display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); }
+  .item-compra input[type=checkbox]{ width:20px; height:20px; accent-color:var(--success); flex-shrink:0; }
+  .item-compra .nombre{ flex:1; }
+  .item-compra.comprado .nombre{ text-decoration:line-through; color:var(--ink-muted); }
+  .item-compra .cant{ font-size:12.5px; color:var(--ink-muted); white-space:nowrap; }
+  .item-compra.pendiente-sync{ opacity:.6; }
+
+  .resultado-busqueda{ background:#fff; border:1px solid var(--line); border-radius:8px; padding:9px 11px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:13.5px; gap:8px; }
+  .sub{ font-size:12px; color:var(--ink-muted); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1 id="titulo-pantalla">Recetario</h1>
+  <p id="subtitulo-pantalla">Tus recetas de siempre</p>
+</header>
+<div class="banda-estado" id="banda-estado"></div>
+
+<main>
+
+  <section class="pantalla activa" id="pantalla-recetas">
+    <div class="buscador"><input type="text" id="buscar-receta" placeholder="Buscar receta..."></div>
+    <div class="fila" style="margin-bottom:14px;">
+      <select id="filtro-macro" class="col"></select>
+      <select id="filtro-grupo" class="col"></select>
+    </div>
+    <div id="lista-recetas"></div>
+  </section>
+
+  <section class="pantalla" id="pantalla-ingredientes">
+    <div id="avisos-conversiones"></div>
+    <div class="buscador"><input type="text" id="buscar-ingrediente" placeholder="Buscar ingrediente..."></div>
+    <button class="btn secundario ancho" id="btn-nuevo-ingrediente" style="margin-bottom:14px;">+ Nuevo ingrediente</button>
+    <div id="lista-ingredientes"></div>
+  </section>
+
+  <section class="pantalla" id="pantalla-menu">
+    <div class="periodo-nav">
+      <button id="periodo-anterior">‹ Anterior</button>
+      <strong id="periodo-label"></strong>
+      <button id="periodo-siguiente">Siguiente ›</button>
+    </div>
+    <div id="grid-menu"></div>
+  </section>
+
+  <section class="pantalla" id="pantalla-compra">
+    <p class="sub" style="margin-top:0;" id="compra-periodo-label"></p>
+    <button class="btn secundario ancho" id="btn-anadir-manual" style="margin-bottom:14px;">+ Añadir a mano</button>
+    <div id="lista-compra"></div>
+  </section>
+
+</main>
+
+<button class="fab" id="fab-nueva" title="Nueva receta">+</button>
+
+<nav class="tabs">
+  <button data-pantalla="recetas" class="activo">Recetario</button>
+  <button data-pantalla="ingredientes">Ingredientes</button>
+  <button data-pantalla="menu">Menú</button>
+  <button data-pantalla="compra">Compra</button>
+</nav>
+
+<!-- Detalle de receta -->
+<div class="overlay" id="overlay-detalle">
+  <div class="hoja">
+    <div class="hoja-cabecera">
+      <h2 id="detalle-nombre"></h2>
+      <button class="cerrar" data-cerrar="overlay-detalle">×</button>
+    </div>
+    <div class="etiquetas" id="detalle-etiquetas"></div>
+    <p class="sub" id="detalle-personas"></p>
+    <h3 style="margin-top:16px;">Ingredientes</h3>
+    <ul id="detalle-ingredientes" style="padding-left:18px; margin:6px 0 0;"></ul>
+    <h3 style="margin-top:18px;">Preparación</h3>
+    <p id="detalle-instrucciones" style="white-space:pre-wrap; margin:6px 0 0;"></p>
+    <div class="fila" style="margin-top:20px;">
+      <button class="btn secundario" id="detalle-editar">Editar</button>
+      <button class="btn peligro" id="detalle-eliminar">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Alta / edición de receta -->
+<div class="overlay" id="overlay-receta">
+  <div class="hoja">
+    <div class="hoja-cabecera">
+      <h2 id="receta-titulo">Nueva receta</h2>
+      <button class="cerrar" data-cerrar="overlay-receta">×</button>
+    </div>
+    <div id="receta-msg"></div>
+    <label>Nombre</label>
+    <input type="text" id="r-nombre">
+    <div class="fila">
+      <div class="col"><label>Personas</label><input type="number" id="r-personas" value="4" min="1"></div>
+      <div class="col"><label>Macronutriente</label><select id="r-macro"></select></div>
+      <div class="col"><label>Grupo</label><select id="r-grupo"></select></div>
+    </div>
+    <h3 style="margin-top:18px;">Ingredientes</h3>
+    <div id="r-ingredientes"></div>
+    <button class="btn secundario pequeno" id="r-add-ingrediente" type="button">+ Añadir ingrediente</button>
+    <h3 style="margin-top:18px;">Preparación</h3>
+    <textarea id="r-instrucciones" placeholder="Pasos para cocinarla..."></textarea>
+    <div style="margin-top:18px;"><button class="btn ancho" id="r-guardar">Guardar receta</button></div>
+  </div>
+</div>
+
+<!-- Alta / edición de ingrediente + conversiones -->
+<div class="overlay" id="overlay-ingrediente">
+  <div class="hoja">
+    <div class="hoja-cabecera">
+      <h2 id="ingrediente-titulo">Nuevo ingrediente</h2>
+      <button class="cerrar" data-cerrar="overlay-ingrediente">×</button>
+    </div>
+    <div id="ingrediente-msg"></div>
+    <label>Nombre</label>
+    <input type="text" id="i-nombre">
+    <div id="i-coincidencias"></div>
+    <label style="margin-top:12px;">Unidad base</label>
+    <select id="i-unidad">
+      <option value="g">g (gramos)</option>
+      <option value="ml">ml (mililitros)</option>
+      <option value="ud">ud (unidades)</option>
+    </select>
+    <div style="margin-top:16px;"><button class="btn ancho" id="i-guardar">Guardar</button></div>
+
+    <div id="i-zona-conversiones" style="display:none;">
+      <h3 style="margin-top:24px;">Equivalencias</h3>
+      <p class="sub" style="margin:4px 0 10px;">Para poder sumar cuando una receta usa otra unidad. Ej: 1 unidad mediana = 150 g.</p>
+      <div id="i-lista-conversiones"></div>
+      <div class="fila" style="margin-top:10px;">
+        <div class="col"><label>1 unidad de...</label><input type="text" id="conv-unidad" placeholder="unidad mediana"></div>
+        <div class="col"><label>equivale a</label><input type="number" id="conv-factor" step="any" placeholder="150"></div>
+      </div>
+      <button class="btn secundario pequeno" id="conv-guardar" style="margin-top:8px;">Añadir equivalencia</button>
+      <div id="conv-msg" style="margin-top:8px;"></div>
+    </div>
+
+    <div style="margin-top:24px;" id="i-zona-eliminar">
+      <button class="btn peligro ancho" id="i-eliminar">Eliminar ingrediente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Buscar receta para el menú -->
+<div class="overlay" id="overlay-buscar-menu">
+  <div class="hoja">
+    <div class="hoja-cabecera">
+      <h2 id="buscar-menu-titulo">Añadir al menú</h2>
+      <button class="cerrar" data-cerrar="overlay-buscar-menu">×</button>
+    </div>
+    <input type="text" id="bm-buscar" placeholder="Buscar por nombre o tipo...">
+    <div class="fila" style="margin:10px 0;">
+      <select id="bm-macro" class="col"></select>
+      <select id="bm-grupo" class="col"></select>
+    </div>
+    <div class="fila" style="margin-bottom:10px;">
+      <label style="flex:0; white-space:nowrap; margin:0 8px 0 0;">Personas</label>
+      <input type="number" id="bm-personas" value="4" min="1" style="max-width:90px;">
+    </div>
+    <div id="bm-resultados"></div>
+  </div>
+</div>
+
+<!-- Añadir item suelto a la compra -->
+<div class="overlay" id="overlay-compra-manual">
+  <div class="hoja">
+    <div class="hoja-cabecera">
+      <h2>Añadir a la lista</h2>
+      <button class="cerrar" data-cerrar="overlay-compra-manual">×</button>
+    </div>
+    <div id="compra-manual-msg"></div>
+    <label>Qué hace falta</label>
+    <input type="text" id="cm-nombre" placeholder="Papel de cocina">
+    <div class="fila">
+      <div class="col"><label>Cantidad (opcional)</label><input type="text" id="cm-cantidad" placeholder="2"></div>
+      <div class="col"><label>Unidad (opcional)</label><input type="text" id="cm-unidad" placeholder="paquetes"></div>
+    </div>
+    <div style="margin-top:16px;"><button class="btn ancho" id="cm-guardar">Añadir</button></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIGURACIÓN
+// ════════════════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbz9EkHV5DjU239Icjew42knadUH5rjGVJhh6dRYMbURSy3OvZcYOYIPSIljRDCB-2_2Lg/exec';
+
+const MACRONUTRIENTES = ['Proteína', 'Hidrato', 'Grasa'];
+const GRUPOS = ['Verdura', 'Fruta', 'Legumbre', 'Cereal', 'Lácteo', 'Fruto seco', 'Proteína animal', 'Grasa/aceite', 'Otro'];
+const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+
+// Día en que arranca el periodo de compra (0=domingo ... 6=sábado).
+// Para cambiarlo, toca esta línea y la misma constante en GeneradorRecetas.gs.
+const DIA_INICIO_PERIODO = 6; // sábado
+
+const CLAVE_CACHE = 'recetario.snapshot';
+const CLAVE_COLA  = 'recetario.cola';
+
+const APP = {
+  ingredientes: [], conversiones: [], recetas: [], recetaIngredientes: [],
+  menuSemana: [], listaCompra: [], avisos: [], periodo: '', offset: 0,
+  editandoReceta: null, editandoIngrediente: null, cargando: false
+};
+
+// ════════════════════════════════════════════════════════════
+// FECHAS Y PERIODOS
+// ════════════════════════════════════════════════════════════
+function fechaISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function inicioDePeriodo(offset) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const diasDesdeInicio = (hoy.getDay() - DIA_INICIO_PERIODO + 7) % 7;
+  const inicio = new Date(hoy);
+  inicio.setDate(hoy.getDate() - diasDesdeInicio + offset * 7);
+  return inicio;
+}
+
+// 8 días: el primero solo cena, el último solo comida.
+function diasDelPeriodo(offset) {
+  const inicio = inicioDePeriodo(offset);
+  const hoyStr = fechaISO(new Date());
+  const dias = [];
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(inicio);
+    d.setDate(inicio.getDate() + i);
+    let momentos;
+    if (i === 0) momentos = ['cena'];
+    else if (i === 7) momentos = ['comida'];
+    else momentos = ['comida', 'cena'];
+    dias.push({
+      fecha: fechaISO(d),
+      nombre: DIAS_SEMANA[(d.getDay() + 6) % 7],
+      corta: d.getDate() + '/' + (d.getMonth() + 1),
+      momentos: momentos,
+      esHoy: fechaISO(d) === hoyStr
+    });
+  }
+  return dias;
+}
+
+// ════════════════════════════════════════════════════════════
+// RED, CACHÉ LOCAL Y COLA DE PENDIENTES
+// ════════════════════════════════════════════════════════════
+function hayConexion() { return navigator.onLine !== false; }
+
+function leerLocal(clave, porDefecto) {
+  try {
+    const raw = localStorage.getItem(clave);
+    return raw ? JSON.parse(raw) : porDefecto;
+  } catch (e) { return porDefecto; }
+}
+
+function guardarLocal(clave, valor) {
+  try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) { /* cuota llena: se ignora */ }
+}
+
+function aplicarSnapshot(data) {
+  APP.ingredientes = data.ingredientes || [];
+  APP.conversiones = data.conversiones || [];
+  APP.recetas = data.recetas || [];
+  APP.recetaIngredientes = data.recetaIngredientes || [];
+  APP.menuSemana = data.menuSemana || [];
+  APP.listaCompra = data.listaCompra || [];
+  APP.avisos = data.avisos || [];
+  APP.periodo = data.semana || APP.periodo;
+}
+
+function guardarSnapshot() {
+  guardarLocal(CLAVE_CACHE, {
+    ingredientes: APP.ingredientes, conversiones: APP.conversiones,
+    recetas: APP.recetas, recetaIngredientes: APP.recetaIngredientes,
+    menuSemana: APP.menuSemana, listaCompra: APP.listaCompra,
+    avisos: APP.avisos, semana: APP.periodo
+  });
+}
+
+async function apiGet(params) {
+  const r = await fetch(API_URL + '?' + new URLSearchParams(params).toString());
+  if (!r.ok) throw new Error('Error de red: ' + r.status);
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  return data;
+}
+
+// Las escrituras devuelven ya el estado actualizado del periodo, así que
+// no hace falta una segunda llamada de recarga.
+async function apiPost(body) {
+  if (!hayConexion()) throw new Error('Sin conexión. Inténtalo cuando vuelvas a tener señal.');
+  body.semana = body.semana || APP.periodo;
+  const r = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('Error de red: ' + r.status);
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  if (data.ingredientes) { aplicarSnapshot(data); guardarSnapshot(); renderTodo(); }
+  return data;
+}
+
+async function cargarTodo() {
+  const periodo = fechaISO(inicioDePeriodo(APP.offset));
+  APP.periodo = periodo;
+  APP.cargando = true;
+  actualizarBanda();
+  try {
+    const data = await apiGet({ accion: 'cargarTodo', semana: periodo });
+    aplicarSnapshot(data);
+    guardarSnapshot();
+    renderTodo();
+  } finally {
+    APP.cargando = false;
+    actualizarBanda();
+  }
+}
+
+// ── Cola de marcas hechas sin cobertura ───────────────────
+// Solo se encolan las marcas de "comprado": es lo único que se hace
+// dentro del supermercado. El resto de acciones se bloquea sin red.
+function encolarMarca(id, comprado) {
+  const cola = leerLocal(CLAVE_COLA, []).filter(function (m) { return m.id !== id; });
+  cola.push({ id: id, comprado: comprado });
+  guardarLocal(CLAVE_COLA, cola);
+  actualizarBanda();
+}
+
+async function vaciarCola() {
+  const cola = leerLocal(CLAVE_COLA, []);
+  if (!cola.length || !hayConexion()) return;
+  try {
+    await apiPost({ accion: 'marcarCompradoLote', marcas: cola });
+    guardarLocal(CLAVE_COLA, []);
+    actualizarBanda();
+  } catch (err) {
+    // Se queda en la cola para el próximo intento.
+  }
+}
+
+function idsEnCola() {
+  const mapa = {};
+  leerLocal(CLAVE_COLA, []).forEach(function (m) { mapa[m.id] = true; });
+  return mapa;
+}
+
+function actualizarBanda() {
+  const banda = document.getElementById('banda-estado');
+  const pendientes = leerLocal(CLAVE_COLA, []).length;
+
+  if (!hayConexion()) {
+    banda.className = 'banda-estado visible offline';
+    banda.textContent = pendientes
+      ? 'Sin conexión · ' + pendientes + ' cambio(s) se guardarán al volver la señal'
+      : 'Sin conexión · viendo la última lista descargada';
+  } else if (pendientes) {
+    banda.className = 'banda-estado visible sync';
+    banda.textContent = 'Guardando ' + pendientes + ' cambio(s) pendiente(s)...';
+  } else if (APP.cargando) {
+    banda.className = 'banda-estado visible sync';
+    banda.textContent = 'Actualizando...';
+  } else {
+    banda.className = 'banda-estado';
+    banda.textContent = '';
+  }
+}
+
+window.addEventListener('online', function () { actualizarBanda(); vaciarCola().then(cargarTodo).catch(function(){}); });
+window.addEventListener('offline', actualizarBanda);
+
+// ════════════════════════════════════════════════════════════
+// NAVEGACIÓN
+// ════════════════════════════════════════════════════════════
+const TITULOS = {
+  recetas: ['Recetario', 'Tus recetas de siempre'],
+  ingredientes: ['Ingredientes', 'Catálogo y equivalencias'],
+  menu: ['Menú', 'De la cena del sábado a la comida del siguiente'],
+  compra: ['Lista de la compra', 'Del menú, más lo que añadas a mano']
+};
+
+document.querySelectorAll('nav.tabs button').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('nav.tabs button').forEach(function (b) { b.classList.remove('activo'); });
+    btn.classList.add('activo');
+    const nombre = btn.dataset.pantalla;
+    document.querySelectorAll('.pantalla').forEach(function (p) { p.classList.remove('activa'); });
+    document.getElementById('pantalla-' + nombre).classList.add('activa');
+    document.getElementById('titulo-pantalla').textContent = TITULOS[nombre][0];
+    document.getElementById('subtitulo-pantalla').textContent = TITULOS[nombre][1];
+    document.getElementById('fab-nueva').style.display = (nombre === 'recetas') ? 'block' : 'none';
+    window.scrollTo(0, 0);
+  });
+});
+
+document.querySelectorAll('[data-cerrar]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.getElementById(btn.dataset.cerrar).classList.remove('activo');
+  });
+});
+
+function llenarSelect(select, opciones, textoVacio) {
+  const valorPrevio = select.value;
+  select.innerHTML = (textoVacio ? '<option value="">' + textoVacio + '</option>' : '') +
+    opciones.map(function (o) { return '<option value="' + o + '">' + o + '</option>'; }).join('');
+  if (valorPrevio) select.value = valorPrevio;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function nombreIngrediente(id) {
+  const i = APP.ingredientes.filter(function (x) { return x.id === id; })[0];
+  return i ? i.nombre : '(eliminado)';
+}
+
+function renderTodo() {
+  renderRecetas();
+  renderIngredientes();
+  renderMenu();
+  renderCompra();
+  renderAvisos();
+}
+
+// ════════════════════════════════════════════════════════════
+// RECETARIO
+// ════════════════════════════════════════════════════════════
+function renderRecetas() {
+  const texto = document.getElementById('buscar-receta').value.trim().toLowerCase();
+  const macro = document.getElementById('filtro-macro').value;
+  const grupo = document.getElementById('filtro-grupo').value;
+
+  const lista = APP.recetas.filter(function (r) {
+    if (texto && String(r.nombre).toLowerCase().indexOf(texto) === -1) return false;
+    if (macro && r.macronutriente_principal !== macro) return false;
+    if (grupo && r.grupo_alimenticio !== grupo) return false;
+    return true;
+  });
+
+  const cont = document.getElementById('lista-recetas');
+  if (!lista.length) {
+    cont.innerHTML = APP.recetas.length
+      ? '<p class="vacio">Ninguna receta coincide con el filtro.</p>'
+      : '<p class="vacio">Aún no hay recetas. Usa el botón + para crear la primera.</p>';
+    return;
+  }
+
+  cont.innerHTML = lista.map(function (r) {
+    return '<div class="ficha" data-id="' + r.id + '">' +
+      '<h2 style="font-size:16px;">' + escapeHtml(r.nombre) + '</h2>' +
+      '<div class="etiquetas">' +
+        (r.macronutriente_principal ? '<span class="etiqueta">' + escapeHtml(r.macronutriente_principal) + '</span>' : '') +
+        (r.grupo_alimenticio ? '<span class="etiqueta">' + escapeHtml(r.grupo_alimenticio) + '</span>' : '') +
+        '<span class="etiqueta">' + r.personas_base + ' pers.</span>' +
+      '</div></div>';
+  }).join('');
+
+  cont.querySelectorAll('.ficha').forEach(function (f) {
+    f.addEventListener('click', function () { abrirDetalleReceta(f.dataset.id); });
+  });
+}
+
+document.getElementById('buscar-receta').addEventListener('input', renderRecetas);
+document.getElementById('filtro-macro').addEventListener('change', renderRecetas);
+document.getElementById('filtro-grupo').addEventListener('change', renderRecetas);
+
+function abrirDetalleReceta(id) {
+  const receta = APP.recetas.filter(function (r) { return r.id === id; })[0];
+  if (!receta) return;
+  APP.editandoReceta = id;
+
+  document.getElementById('detalle-nombre').textContent = receta.nombre;
+  document.getElementById('detalle-personas').textContent = 'Cantidades para ' + receta.personas_base + ' personas.';
+  document.getElementById('detalle-etiquetas').innerHTML =
+    (receta.macronutriente_principal ? '<span class="etiqueta">' + escapeHtml(receta.macronutriente_principal) + '</span>' : '') +
+    (receta.grupo_alimenticio ? '<span class="etiqueta">' + escapeHtml(receta.grupo_alimenticio) + '</span>' : '');
+
+  const ings = APP.recetaIngredientes.filter(function (ri) { return ri.id_receta === id; });
+  document.getElementById('detalle-ingredientes').innerHTML = ings.length
+    ? ings.map(function (ri) {
+        return '<li>' + ri.cantidad_para_personas_base + ' ' + escapeHtml(ri.unidad_usada) + ' · ' + escapeHtml(nombreIngrediente(ri.id_ingrediente)) + '</li>';
+      }).join('')
+    : '<li>Sin ingredientes.</li>';
+
+  document.getElementById('detalle-instrucciones').textContent = receta.instrucciones || 'Sin instrucciones todavía.';
+  document.getElementById('overlay-detalle').classList.add('activo');
+}
+
+document.getElementById('detalle-editar').addEventListener('click', function () {
+  document.getElementById('overlay-detalle').classList.remove('activo');
+  abrirFormularioReceta(APP.editandoReceta);
+});
+
+document.getElementById('detalle-eliminar').addEventListener('click', async function () {
+  const receta = APP.recetas.filter(function (r) { return r.id === APP.editandoReceta; })[0];
+  if (!receta) return;
+  if (!confirm('¿Eliminar "' + receta.nombre + '"? También se quitará de los menús donde esté.')) return;
+  try {
+    await apiPost({ accion: 'eliminarReceta', id: APP.editandoReceta });
+    document.getElementById('overlay-detalle').classList.remove('activo');
+  } catch (err) { alert(err.message); }
+});
+
+// ── Alta / edición ────────────────────────────────────────
+document.getElementById('fab-nueva').addEventListener('click', function () { abrirFormularioReceta(null); });
+
+function abrirFormularioReceta(idReceta) {
+  APP.editandoReceta = idReceta;
+  const esEdicion = !!idReceta;
+  const receta = esEdicion ? APP.recetas.filter(function (r) { return r.id === idReceta; })[0] : null;
+
+  document.getElementById('receta-titulo').textContent = esEdicion ? 'Editar receta' : 'Nueva receta';
+  document.getElementById('receta-msg').innerHTML = '';
+  document.getElementById('r-macro').innerHTML = '';
+  document.getElementById('r-grupo').innerHTML = '';
+  llenarSelect(document.getElementById('r-macro'), MACRONUTRIENTES, 'Sin especificar');
+  llenarSelect(document.getElementById('r-grupo'), GRUPOS, 'Sin especificar');
+
+  document.getElementById('r-nombre').value = receta ? receta.nombre : '';
+  document.getElementById('r-personas').value = receta ? receta.personas_base : 4;
+  document.getElementById('r-macro').value = receta ? (receta.macronutriente_principal || '') : '';
+  document.getElementById('r-grupo').value = receta ? (receta.grupo_alimenticio || '') : '';
+  document.getElementById('r-instrucciones').value = receta ? (receta.instrucciones || '') : '';
+
+  const cont = document.getElementById('r-ingredientes');
+  cont.innerHTML = '';
+  if (esEdicion) {
+    const ings = APP.recetaIngredientes.filter(function (ri) { return ri.id_receta === idReceta; });
+    if (ings.length) ings.forEach(function (ri) { filaIngredienteReceta(ri.id_ingrediente, ri.cantidad_para_personas_base, ri.unidad_usada); });
+    else filaIngredienteReceta();
+  } else {
+    filaIngredienteReceta();
+  }
+
+  document.getElementById('overlay-receta').classList.add('activo');
+}
+
+function filaIngredienteReceta(idIng, cantidad, unidad) {
+  const cont = document.getElementById('r-ingredientes');
+  const fila = document.createElement('div');
+  fila.className = 'ing-fila';
+
+  const opciones = APP.ingredientes.map(function (i) {
+    return '<option value="' + i.id + '" data-unidad="' + escapeHtml(i.unidad_base) + '"' +
+      (i.id === idIng ? ' selected' : '') + '>' + escapeHtml(i.nombre) + '</option>';
+  }).join('');
+
+  fila.innerHTML =
+    '<div class="col"><label>Ingrediente</label>' +
+      '<select class="ri-ingrediente"><option value="">Elegir...</option>' + opciones + '</select></div>' +
+    '<div class="col cant"><label>Cantidad</label>' +
+      '<input type="number" class="ri-cantidad" min="0" step="any" value="' + (cantidad != null ? cantidad : '') + '"></div>' +
+    '<div class="col cant"><label>Unidad</label>' +
+      '<input type="text" class="ri-unidad" placeholder="g" value="' + escapeHtml(unidad != null ? unidad : '') + '"></div>' +
+    '<button type="button" class="icono rojo">×</button>';
+
+  fila.querySelector('.ri-ingrediente').addEventListener('change', function (e) {
+    const opt = e.target.selectedOptions[0];
+    const campoUnidad = fila.querySelector('.ri-unidad');
+    if (opt && opt.dataset.unidad && !campoUnidad.value) campoUnidad.value = opt.dataset.unidad;
+  });
+  fila.querySelector('.icono').addEventListener('click', function () { fila.remove(); });
+  cont.appendChild(fila);
+}
+
+document.getElementById('r-add-ingrediente').addEventListener('click', function () { filaIngredienteReceta(); });
+
+document.getElementById('r-guardar').addEventListener('click', async function () {
+  const msg = document.getElementById('receta-msg');
+  msg.innerHTML = '';
+
+  const nombre = document.getElementById('r-nombre').value.trim();
+  const personas = Number(document.getElementById('r-personas').value);
+  if (!nombre || !personas) { msg.innerHTML = '<div class="msg error">Falta el nombre o las personas.</div>'; return; }
+
+  const ingredientes = Array.from(document.querySelectorAll('#r-ingredientes .ing-fila')).map(function (f) {
+    return {
+      id_ingrediente: f.querySelector('.ri-ingrediente').value,
+      cantidad: f.querySelector('.ri-cantidad').value,
+      unidad: f.querySelector('.ri-unidad').value.trim()
+    };
+  }).filter(function (i) { return i.id_ingrediente && i.cantidad; });
+
+  if (!ingredientes.length) { msg.innerHTML = '<div class="msg error">Añade al menos un ingrediente con cantidad.</div>'; return; }
+
+  const sinUnidad = ingredientes.filter(function (i) { return !i.unidad; });
+  if (sinUnidad.length) { msg.innerHTML = '<div class="msg error">Falta la unidad en algún ingrediente.</div>'; return; }
+
+  const boton = document.getElementById('r-guardar');
+  boton.disabled = true;
+  try {
+    const payload = {
+      accion: APP.editandoReceta ? 'editarReceta' : 'crearReceta',
+      nombre: nombre,
+      personas_base: personas,
+      macronutriente_principal: document.getElementById('r-macro').value,
+      grupo_alimenticio: document.getElementById('r-grupo').value,
+      instrucciones: document.getElementById('r-instrucciones').value,
+      ingredientes: ingredientes
+    };
+    if (APP.editandoReceta) payload.id = APP.editandoReceta;
+    await apiPost(payload);
+    document.getElementById('overlay-receta').classList.remove('activo');
+    APP.editandoReceta = null;
+  } catch (err) {
+    msg.innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// INGREDIENTES
+// ════════════════════════════════════════════════════════════
+function renderIngredientes() {
+  const texto = document.getElementById('buscar-ingrediente').value.trim().toLowerCase();
+  const cont = document.getElementById('lista-ingredientes');
+  const lista = APP.ingredientes.filter(function (i) { return String(i.nombre).toLowerCase().indexOf(texto) !== -1; });
+
+  if (!lista.length) {
+    cont.innerHTML = '<p class="vacio">' + (APP.ingredientes.length ? 'Ninguno coincide.' : 'Aún no hay ingredientes.') + '</p>';
+    return;
+  }
+
+  cont.innerHTML = lista.map(function (i) {
+    const convs = APP.conversiones.filter(function (c) { return c.id_ingrediente === i.id; });
+    const faltan = APP.avisos.filter(function (a) { return a.id_ingrediente === i.id; }).length;
+    return '<div class="ficha" data-id="' + i.id + '">' +
+      '<div class="ficha-cab"><strong>' + escapeHtml(i.nombre) + '</strong>' +
+      '<span class="sub">' + escapeHtml(i.unidad_base) + '</span></div>' +
+      (convs.length || faltan ? '<div class="etiquetas">' +
+        (convs.length ? '<span class="etiqueta">' + convs.length + ' equivalencia(s)</span>' : '') +
+        (faltan ? '<span class="etiqueta aviso">falta equivalencia</span>' : '') +
+      '</div>' : '') +
+      '</div>';
+  }).join('');
+
+  cont.querySelectorAll('.ficha').forEach(function (f) {
+    f.addEventListener('click', function () { abrirFormularioIngrediente(f.dataset.id); });
+  });
+}
+
+document.getElementById('buscar-ingrediente').addEventListener('input', renderIngredientes);
+document.getElementById('btn-nuevo-ingrediente').addEventListener('click', function () { abrirFormularioIngrediente(null); });
+
+function abrirFormularioIngrediente(id) {
+  APP.editandoIngrediente = id;
+  const ing = id ? APP.ingredientes.filter(function (i) { return i.id === id; })[0] : null;
+
+  document.getElementById('ingrediente-titulo').textContent = ing ? 'Editar ingrediente' : 'Nuevo ingrediente';
+  document.getElementById('ingrediente-msg').innerHTML = '';
+  document.getElementById('i-coincidencias').innerHTML = '';
+  document.getElementById('conv-msg').innerHTML = '';
+  document.getElementById('i-nombre').value = ing ? ing.nombre : '';
+  document.getElementById('i-unidad').value = ing ? ing.unidad_base : 'g';
+  document.getElementById('conv-unidad').value = '';
+  document.getElementById('conv-factor').value = '';
+
+  document.getElementById('i-zona-conversiones').style.display = ing ? 'block' : 'none';
+  document.getElementById('i-zona-eliminar').style.display = ing ? 'block' : 'none';
+  if (ing) renderConversionesDe(ing);
+
+  document.getElementById('overlay-ingrediente').classList.add('activo');
+}
+
+function renderConversionesDe(ing) {
+  const cont = document.getElementById('i-lista-conversiones');
+  const convs = APP.conversiones.filter(function (c) { return c.id_ingrediente === ing.id; });
+  const faltan = APP.avisos.filter(function (a) { return a.id_ingrediente === ing.id; });
+
+  let html = convs.map(function (c) {
+    return '<div class="resultado-busqueda"><span>1 ' + escapeHtml(c.unidad_alternativa) +
+      ' = ' + c.factor_a_unidad_base + ' ' + escapeHtml(ing.unidad_base) + '</span>' +
+      '<button class="icono rojo" data-conv="' + c.id + '">×</button></div>';
+  }).join('');
+
+  if (faltan.length) {
+    html += faltan.map(function (a) {
+      return '<div class="msg aviso">Alguna receta usa "' + escapeHtml(a.unidad_usada) +
+        '" y no hay equivalencia — esa cantidad se suma sin convertir.</div>';
+    }).join('');
+  }
+
+  cont.innerHTML = html || '<p class="sub">Ninguna todavía.</p>';
+  cont.querySelectorAll('[data-conv]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      try {
+        await apiPost({ accion: 'eliminarConversion', id: btn.dataset.conv });
+        renderConversionesDe(APP.ingredientes.filter(function (i) { return i.id === ing.id; })[0] || ing);
+      } catch (err) { alert(err.message); }
+    });
+  });
+}
+
+document.getElementById('i-nombre').addEventListener('input', function (e) {
+  const texto = e.target.value.trim().toLowerCase();
+  const cont = document.getElementById('i-coincidencias');
+  if (!texto || APP.editandoIngrediente) { cont.innerHTML = ''; return; }
+  const coincidencias = APP.ingredientes.filter(function (i) { return String(i.nombre).toLowerCase().indexOf(texto) !== -1; });
+  cont.innerHTML = coincidencias.length
+    ? '<p class="sub" style="color:var(--danger); margin:6px 0 0;">Ya existe: ' +
+      coincidencias.map(function (i) { return escapeHtml(i.nombre); }).join(', ') + '</p>'
+    : '';
+});
+
+document.getElementById('i-guardar').addEventListener('click', async function () {
+  const msg = document.getElementById('ingrediente-msg');
+  const nombre = document.getElementById('i-nombre').value.trim();
+  if (!nombre) { msg.innerHTML = '<div class="msg error">Escribe un nombre.</div>'; return; }
+
+  const boton = document.getElementById('i-guardar');
+  boton.disabled = true;
+  try {
+    const payload = {
+      accion: APP.editandoIngrediente ? 'editarIngrediente' : 'crearIngrediente',
+      nombre: nombre,
+      unidad_base: document.getElementById('i-unidad').value
+    };
+    if (APP.editandoIngrediente) payload.id = APP.editandoIngrediente;
+    await apiPost(payload);
+    document.getElementById('overlay-ingrediente').classList.remove('activo');
+    APP.editandoIngrediente = null;
+  } catch (err) {
+    msg.innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+document.getElementById('i-eliminar').addEventListener('click', async function () {
+  if (!APP.editandoIngrediente) return;
+  if (!confirm('¿Eliminar este ingrediente del catálogo?')) return;
+  const msg = document.getElementById('ingrediente-msg');
+  try {
+    await apiPost({ accion: 'eliminarIngrediente', id: APP.editandoIngrediente });
+    document.getElementById('overlay-ingrediente').classList.remove('activo');
+    APP.editandoIngrediente = null;
+  } catch (err) {
+    msg.innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+  }
+});
+
+document.getElementById('conv-guardar').addEventListener('click', async function () {
+  const msg = document.getElementById('conv-msg');
+  const unidad = document.getElementById('conv-unidad').value.trim();
+  const factor = document.getElementById('conv-factor').value;
+  if (!unidad || !factor) { msg.innerHTML = '<div class="msg error">Faltan la unidad o el factor.</div>'; return; }
+
+  try {
+    await apiPost({
+      accion: 'crearConversion',
+      id_ingrediente: APP.editandoIngrediente,
+      unidad_alternativa: unidad,
+      factor_a_unidad_base: factor
+    });
+    document.getElementById('conv-unidad').value = '';
+    document.getElementById('conv-factor').value = '';
+    msg.innerHTML = '';
+    const ing = APP.ingredientes.filter(function (i) { return i.id === APP.editandoIngrediente; })[0];
+    if (ing) renderConversionesDe(ing);
+  } catch (err) {
+    msg.innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+  }
+});
+
+function renderAvisos() {
+  const cont = document.getElementById('avisos-conversiones');
+  if (!APP.avisos.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = '<div class="msg aviso">Hay ' + APP.avisos.length +
+    ' unidad(es) sin equivalencia definida. Esas cantidades se suman sin convertir en la lista de la compra.</div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// MENÚ
+// ════════════════════════════════════════════════════════════
+document.getElementById('periodo-anterior').addEventListener('click', function () { APP.offset--; cargarTodo().catch(mostrarErrorCarga); });
+document.getElementById('periodo-siguiente').addEventListener('click', function () { APP.offset++; cargarTodo().catch(mostrarErrorCarga); });
+
+function renderMenu() {
+  const dias = diasDelPeriodo(APP.offset);
+  document.getElementById('periodo-label').textContent = dias[0].corta + ' cena → ' + dias[7].corta + ' comida';
+  document.getElementById('compra-periodo-label').textContent = 'Periodo del ' + dias[0].corta + ' al ' + dias[7].corta;
+
+  const cont = document.getElementById('grid-menu');
+  cont.innerHTML = dias.map(function (dia) {
+    return '<div class="dia-bloque">' +
+      '<div class="dia-titulo' + (dia.esHoy ? ' hoy' : '') + '">' + dia.nombre + ' ' + dia.corta + '</div>' +
+      dia.momentos.map(function (m) { return renderMomento(dia.fecha, m); }).join('') +
+    '</div>';
+  }).join('');
+
+  cont.querySelectorAll('[data-quitar]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      if (!confirm('¿Quitar del menú?')) return;
+      try { await apiPost({ accion: 'quitarDeMenu', id_menu: btn.dataset.quitar }); }
+      catch (err) { alert(err.message); }
+    });
+  });
+
+  cont.querySelectorAll('.add-momento').forEach(function (btn) {
+    btn.addEventListener('click', function () { abrirBuscadorMenu(btn.dataset.fecha, btn.dataset.momento); });
+  });
+}
+
+function renderMomento(fecha, momento) {
+  const items = APP.menuSemana.filter(function (m) { return String(fechaDeFila(m.fecha)) === fecha && m.momento === momento; });
+  const chips = items.map(function (m) {
+    const receta = APP.recetas.filter(function (r) { return r.id === m.id_receta; })[0];
+    return '<div class="chip-receta"><span>' + escapeHtml(receta ? receta.nombre : '(eliminada)') +
+      ' <span class="sub">' + m.personas_ese_dia + ' pers.</span></span>' +
+      '<button class="icono rojo" data-quitar="' + m.id + '">×</button></div>';
+  }).join('');
+
+  return '<div class="momento-titulo">' + (momento === 'comida' ? 'Comida' : 'Cena') + '</div>' + chips +
+    '<button class="add-momento" data-fecha="' + fecha + '" data-momento="' + momento + '">+ Añadir</button>';
+}
+
+// El backend puede devolver la fecha como 'YYYY-MM-DD' o como fecha ISO
+// completa, según cómo Sheets tenga formateada la columna.
+function fechaDeFila(valor) {
+  const s = String(valor);
+  return s.length > 10 ? s.slice(0, 10) : s;
+}
+
+let destinoMenu = { fecha: null, momento: null };
+
+function abrirBuscadorMenu(fecha, momento) {
+  destinoMenu = { fecha: fecha, momento: momento };
+  document.getElementById('buscar-menu-titulo').textContent =
+    (momento === 'comida' ? 'Comida' : 'Cena') + ' del ' + fecha.slice(8) + '/' + fecha.slice(5, 7);
+  document.getElementById('bm-buscar').value = '';
+  document.getElementById('bm-macro').innerHTML = '';
+  document.getElementById('bm-grupo').innerHTML = '';
+  llenarSelect(document.getElementById('bm-macro'), MACRONUTRIENTES, 'Cualquier macro');
+  llenarSelect(document.getElementById('bm-grupo'), GRUPOS, 'Cualquier grupo');
+  document.getElementById('bm-macro').value = '';
+  document.getElementById('bm-grupo').value = '';
+  renderResultadosMenu();
+  document.getElementById('overlay-buscar-menu').classList.add('activo');
+}
+
+['bm-buscar', 'bm-macro', 'bm-grupo'].forEach(function (id) {
+  document.getElementById(id).addEventListener(id === 'bm-buscar' ? 'input' : 'change', renderResultadosMenu);
+});
+
+function renderResultadosMenu() {
+  const texto = document.getElementById('bm-buscar').value.trim().toLowerCase();
+  const macro = document.getElementById('bm-macro').value;
+  const grupo = document.getElementById('bm-grupo').value;
+
+  const resultados = APP.recetas.filter(function (r) {
+    if (macro && r.macronutriente_principal !== macro) return false;
+    if (grupo && r.grupo_alimenticio !== grupo) return false;
+    if (!texto) return true;
+    return String(r.nombre).toLowerCase().indexOf(texto) !== -1;
+  });
+
+  const cont = document.getElementById('bm-resultados');
+  cont.innerHTML = resultados.length
+    ? resultados.map(function (r) {
+        const tipos = [r.macronutriente_principal, r.grupo_alimenticio].filter(Boolean).join(' · ');
+        return '<div class="resultado-busqueda"><span>' + escapeHtml(r.nombre) +
+          (tipos ? '<br><span class="sub">' + escapeHtml(tipos) + '</span>' : '') + '</span>' +
+          '<button class="btn pequeno" data-id="' + r.id + '">Añadir</button></div>';
+      }).join('')
+    : '<p class="vacio">Sin resultados.</p>';
+
+  cont.querySelectorAll('button[data-id]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      btn.disabled = true;
+      try {
+        await apiPost({
+          accion: 'anadirAMenu',
+          fecha: destinoMenu.fecha,
+          momento: destinoMenu.momento,
+          id_receta: btn.dataset.id,
+          personas_ese_dia: Number(document.getElementById('bm-personas').value) || 4
+        });
+        document.getElementById('overlay-buscar-menu').classList.remove('activo');
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// LISTA DE LA COMPRA
+// ════════════════════════════════════════════════════════════
+function esComprado(item) {
+  return item.comprado === true || item.comprado === 'TRUE' || item.comprado === 'true';
+}
+
+function renderCompra() {
+  const cont = document.getElementById('lista-compra');
+  if (!APP.listaCompra.length) {
+    cont.innerHTML = '<p class="vacio">Nada que comprar todavía. Añade recetas al menú o pulsa "Añadir a mano".</p>';
+    return;
+  }
+
+  const enCola = idsEnCola();
+  const pendientes = APP.listaCompra.filter(function (i) { return !esComprado(i); });
+  const comprados = APP.listaCompra.filter(esComprado);
+
+  cont.innerHTML = pendientes.concat(comprados).map(function (item) {
+    const comprado = esComprado(item);
+    const cant = (item.cantidad_total !== '' && item.cantidad_total != null)
+      ? item.cantidad_total + ' ' + escapeHtml(item.unidad || '')
+      : escapeHtml(item.unidad || '');
+    return '<div class="item-compra' + (comprado ? ' comprado' : '') + (enCola[item.id] ? ' pendiente-sync' : '') + '">' +
+      '<input type="checkbox" data-id="' + item.id + '"' + (comprado ? ' checked' : '') + '>' +
+      '<span class="nombre">' + escapeHtml(item.ingrediente) +
+        (item.origen === 'manual' ? ' <span class="etiqueta" style="font-size:10px;">a mano</span>' : '') + '</span>' +
+      '<span class="cant">' + cant + '</span>' +
+      '<button class="icono rojo" data-borrar="' + item.id + '">×</button></div>';
+  }).join('');
+
+  cont.querySelectorAll('input[type=checkbox]').forEach(function (chk) {
+    chk.addEventListener('change', async function () {
+      const item = APP.listaCompra.filter(function (i) { return i.id === chk.dataset.id; })[0];
+      if (!item) return;
+
+      item.comprado = chk.checked;  // actualización optimista: se ve al instante
+      guardarSnapshot();
+      renderCompra();
+
+      if (!hayConexion()) { encolarMarca(item.id, chk.checked); return; }
+
+      try {
+        await apiPost({ accion: 'marcarComprado', id: item.id, comprado: chk.checked });
+      } catch (err) {
+        encolarMarca(item.id, chk.checked);  // se reintenta cuando vuelva la red
+        actualizarBanda();
+      }
+    });
+  });
+
+  cont.querySelectorAll('[data-borrar]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      if (!confirm('¿Quitar este item de la lista?')) return;
+      try { await apiPost({ accion: 'eliminarItemCompra', id: btn.dataset.borrar }); }
+      catch (err) { alert(err.message); }
+    });
+  });
+}
+
+document.getElementById('btn-anadir-manual').addEventListener('click', function () {
+  document.getElementById('cm-nombre').value = '';
+  document.getElementById('cm-cantidad').value = '';
+  document.getElementById('cm-unidad').value = '';
+  document.getElementById('compra-manual-msg').innerHTML = '';
+  document.getElementById('overlay-compra-manual').classList.add('activo');
+});
+
+document.getElementById('cm-guardar').addEventListener('click', async function () {
+  const msg = document.getElementById('compra-manual-msg');
+  const nombre = document.getElementById('cm-nombre').value.trim();
+  if (!nombre) { msg.innerHTML = '<div class="msg error">Escribe qué hace falta.</div>'; return; }
+
+  const boton = document.getElementById('cm-guardar');
+  boton.disabled = true;
+  try {
+    await apiPost({
+      accion: 'anadirManualALista',
+      semana: APP.periodo,
+      nombre: nombre,
+      cantidad: document.getElementById('cm-cantidad').value.trim(),
+      unidad: document.getElementById('cm-unidad').value.trim()
+    });
+    document.getElementById('overlay-compra-manual').classList.remove('activo');
+  } catch (err) {
+    msg.innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// ARRANQUE
+// ════════════════════════════════════════════════════════════
+function mostrarErrorCarga(err) {
+  const cont = document.getElementById('lista-recetas');
+  const yaHayDatos = APP.recetas.length || APP.listaCompra.length;
+  if (!yaHayDatos) {
+    cont.innerHTML = '<div class="msg error">No se pudo conectar: ' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+llenarSelect(document.getElementById('filtro-macro'), MACRONUTRIENTES, 'Cualquier macro');
+llenarSelect(document.getElementById('filtro-grupo'), GRUPOS, 'Cualquier grupo');
+
+// 1. Pintar de inmediato lo último descargado (la app abre útil aunque
+//    no haya red, que es el caso del supermercado).
+const cacheLocal = leerLocal(CLAVE_CACHE, null);
+if (cacheLocal) { aplicarSnapshot(cacheLocal); renderTodo(); }
+actualizarBanda();
+
+// 2. Reintentar lo que quedó pendiente y refrescar contra el servidor.
+vaciarCola()
+  .then(cargarTodo)
+  .catch(mostrarErrorCarga);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
+}
+</script>
+</body>
+</html>
