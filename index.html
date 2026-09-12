@@ -714,9 +714,29 @@ function comprobarRechazoPin(data) {
   }
 }
 
+// Apps Script puede tardar mucho o no responder nunca. Sin un corte, la app
+// se queda esperando con el botón bloqueado: eso es lo que se percibe como
+// "se ha quedado pillado".
+const TIEMPO_LIMITE_MS = 20000;
+
+async function fetchConLimite(url, opciones) {
+  const control = new AbortController();
+  const temporizador = setTimeout(function () { control.abort(); }, TIEMPO_LIMITE_MS);
+  try {
+    return await fetch(url, Object.assign({ signal: control.signal }, opciones || {}));
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('El servidor no responde. Vuelve a intentarlo.');
+    }
+    throw new Error('No se pudo conectar. Comprueba la conexión.');
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
 async function apiGet(params) {
   params.pin = pinGuardado();
-  const r = await fetch(API_URL + '?' + new URLSearchParams(params).toString());
+  const r = await fetchConLimite(API_URL + '?' + new URLSearchParams(params).toString());
   if (!r.ok) throw new Error('Error de red: ' + r.status);
   const data = await r.json();
   if (!data.ok) { comprobarRechazoPin(data); throw new Error(data.error || 'Error desconocido'); }
@@ -729,7 +749,7 @@ async function apiPost(body) {
   if (!hayConexion()) throw new Error('Sin conexión. Inténtalo cuando vuelvas a tener señal.');
   body.semana = body.semana || APP.periodo;
   body.pin = pinGuardado();
-  const r = await fetch(API_URL, {
+  const r = await fetchConLimite(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
     body: JSON.stringify(body)
@@ -748,6 +768,7 @@ async function apiPost(body) {
 async function cargarTodo() {
   const periodo = fechaISO(inicioDePeriodo(APP.offset));
   APP.periodo = periodo;
+  if (APP.cargando) return;   // evita peticiones encimadas al tocar rápido
   APP.cargando = true;
   actualizarBanda();
   try {
@@ -822,7 +843,7 @@ const NOMBRE_APP = 'Puchero';
 
 // Subir esto en cada publicación: sirve para comprobar de un vistazo qué
 // versión está ejecutando cada móvil cuando algo no cuadra entre ellos.
-const VERSION_APP = '14';
+const VERSION_APP = '15';
 
 const TITULOS = {
   recetas: 'Recetas',
@@ -1560,6 +1581,7 @@ function renderResultadosMenu() {
         document.getElementById('overlay-buscar-menu').classList.remove('activo');
       } catch (err) {
         alert(err.message);
+      } finally {
         btn.disabled = false;
       }
     });

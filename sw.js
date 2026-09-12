@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puchero-shell-v14';
+const CACHE_NAME = 'puchero-shell-v15';
 
 // Solo los recursos que casi nunca cambian van en caché de inicio.
 const SHELL_FILES = [
