@@ -97,9 +97,12 @@
   .hoja-cabecera{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:10px; }
   .cerrar{ background:none; border:none; font-size:22px; color:var(--ink-muted); padding:4px 8px; line-height:1; }
 
-  .ing-fila{ display:flex; gap:6px; align-items:flex-end; margin-bottom:8px; }
+  .ing-fila{ margin-bottom:8px; }
+  .ing-linea{ display:flex; gap:6px; align-items:flex-end; }
   .ing-fila .col{ flex:2; }
   .ing-fila .col.cant{ flex:1; }
+  .ing-nuevo{ background:var(--primary-soft); border-radius:8px; padding:10px 12px; margin-top:6px; }
+  .ing-nuevo .sub{ margin:0 0 8px; }
 
   .msg{ font-size:13px; padding:9px 11px; border-radius:8px; margin-bottom:12px; }
   .msg.error{ background:#F3E3DC; color:var(--danger); }
@@ -690,31 +693,126 @@ function abrirFormularioReceta(idReceta) {
   document.getElementById('overlay-receta').classList.add('activo');
 }
 
+// Opciones del desplegable de ingredientes, con la entrada especial para
+// dar de alta uno nuevo sin salir del formulario de receta.
+function opcionesIngredientes(seleccionado) {
+  return '<option value="">Elegir...</option>' +
+    APP.ingredientes.map(function (i) {
+      return '<option value="' + i.id + '" data-unidad="' + escapeHtml(i.unidad_base) + '"' +
+        (i.id === seleccionado ? ' selected' : '') + '>' + escapeHtml(i.nombre) + '</option>';
+    }).join('') +
+    '<option value="__nuevo__">+ Crear ingrediente nuevo...</option>';
+}
+
+// Tras crear un ingrediente hay que repoblar TODOS los desplegables de la
+// receta, conservando lo que ya estuviera elegido en cada fila.
+function refrescarSelectsIngredientes() {
+  document.querySelectorAll('#r-ingredientes .ri-ingrediente').forEach(function (sel) {
+    const actual = sel.value === '__nuevo__' ? '' : sel.value;
+    sel.innerHTML = opcionesIngredientes(actual);
+    sel.value = actual;
+  });
+}
+
 function filaIngredienteReceta(idIng, cantidad, unidad) {
   const cont = document.getElementById('r-ingredientes');
   const fila = document.createElement('div');
   fila.className = 'ing-fila';
 
-  const opciones = APP.ingredientes.map(function (i) {
-    return '<option value="' + i.id + '" data-unidad="' + escapeHtml(i.unidad_base) + '"' +
-      (i.id === idIng ? ' selected' : '') + '>' + escapeHtml(i.nombre) + '</option>';
-  }).join('');
-
   fila.innerHTML =
-    '<div class="col"><label>Ingrediente</label>' +
-      '<select class="ri-ingrediente"><option value="">Elegir...</option>' + opciones + '</select></div>' +
-    '<div class="col cant"><label>Cantidad</label>' +
-      '<input type="number" class="ri-cantidad" min="0" step="any" value="' + (cantidad != null ? cantidad : '') + '"></div>' +
-    '<div class="col cant"><label>Unidad</label>' +
-      '<input type="text" class="ri-unidad" placeholder="g" value="' + escapeHtml(unidad != null ? unidad : '') + '"></div>' +
-    '<button type="button" class="icono rojo">×</button>';
+    '<div class="ing-linea">' +
+      '<div class="col"><label>Ingrediente</label>' +
+        '<select class="ri-ingrediente">' + opcionesIngredientes(idIng) + '</select></div>' +
+      '<div class="col cant"><label>Cantidad</label>' +
+        '<input type="number" class="ri-cantidad" min="0" step="any" value="' + (cantidad != null ? cantidad : '') + '"></div>' +
+      '<div class="col cant"><label>Unidad</label>' +
+        '<input type="text" class="ri-unidad" placeholder="g" value="' + escapeHtml(unidad != null ? unidad : '') + '"></div>' +
+      '<button type="button" class="icono rojo quitar-fila">×</button>' +
+    '</div>' +
+    '<div class="ing-nuevo" style="display:none;">' +
+      '<p class="sub">Nuevo ingrediente — se guarda en el catálogo y queda elegido en esta fila.</p>' +
+      '<div class="fila">' +
+        '<div class="col"><label>Nombre</label><input type="text" class="nuevo-nombre" placeholder="Ej. Pimentón"></div>' +
+        '<div class="col cant"><label>Unidad base</label>' +
+          '<select class="nuevo-unidad"><option value="g">g</option><option value="ml">ml</option><option value="ud">ud</option></select></div>' +
+      '</div>' +
+      '<div class="nuevo-coincidencias"></div>' +
+      '<div class="fila" style="margin-top:10px;">' +
+        '<button type="button" class="btn pequeno nuevo-crear">Crear y usar</button>' +
+        '<button type="button" class="btn secundario pequeno nuevo-cancelar">Cancelar</button>' +
+      '</div>' +
+      '<div class="nuevo-msg"></div>' +
+    '</div>';
 
-  fila.querySelector('.ri-ingrediente').addEventListener('change', function (e) {
-    const opt = e.target.selectedOptions[0];
+  const select = fila.querySelector('.ri-ingrediente');
+  const bloqueNuevo = fila.querySelector('.ing-nuevo');
+  const campoNombre = fila.querySelector('.nuevo-nombre');
+  const campoUnidadBase = fila.querySelector('.nuevo-unidad');
+  const coincidencias = fila.querySelector('.nuevo-coincidencias');
+  const msgNuevo = fila.querySelector('.nuevo-msg');
+
+  function cerrarBloqueNuevo() {
+    bloqueNuevo.style.display = 'none';
+    campoNombre.value = '';
+    coincidencias.innerHTML = '';
+    msgNuevo.innerHTML = '';
+  }
+
+  select.addEventListener('change', function () {
+    if (select.value === '__nuevo__') {
+      select.value = '';
+      bloqueNuevo.style.display = 'block';
+      campoNombre.focus();
+      return;
+    }
+    const opt = select.selectedOptions[0];
     const campoUnidad = fila.querySelector('.ri-unidad');
     if (opt && opt.dataset.unidad && !campoUnidad.value) campoUnidad.value = opt.dataset.unidad;
   });
-  fila.querySelector('.icono').addEventListener('click', function () { fila.remove(); });
+
+  // Avisa de parecidos mientras escribe, para no acabar con "tomate" y "tomates".
+  campoNombre.addEventListener('input', function () {
+    const texto = campoNombre.value.trim().toLowerCase();
+    if (!texto) { coincidencias.innerHTML = ''; return; }
+    const parecidos = APP.ingredientes.filter(function (i) {
+      return String(i.nombre).toLowerCase().indexOf(texto) !== -1;
+    });
+    coincidencias.innerHTML = parecidos.length
+      ? '<p class="sub" style="color:var(--danger); margin:8px 0 0;">Ya existe: ' +
+        parecidos.map(function (i) { return escapeHtml(i.nombre); }).join(', ') + '</p>'
+      : '';
+  });
+
+  fila.querySelector('.nuevo-cancelar').addEventListener('click', cerrarBloqueNuevo);
+
+  fila.querySelector('.nuevo-crear').addEventListener('click', async function () {
+    const nombre = campoNombre.value.trim();
+    if (!nombre) { msgNuevo.innerHTML = '<div class="msg error">Escribe un nombre.</div>'; return; }
+
+    const boton = fila.querySelector('.nuevo-crear');
+    boton.disabled = true;
+    msgNuevo.innerHTML = '';
+    try {
+      const res = await apiPost({
+        accion: 'crearIngrediente',
+        nombre: nombre,
+        unidad_base: campoUnidadBase.value
+      });
+      // El snapshot de la respuesta ya actualizó APP.ingredientes.
+      refrescarSelectsIngredientes();
+      select.value = res.id;
+      const campoUnidad = fila.querySelector('.ri-unidad');
+      if (!campoUnidad.value) campoUnidad.value = campoUnidadBase.value;
+      cerrarBloqueNuevo();
+      fila.querySelector('.ri-cantidad').focus();
+    } catch (err) {
+      msgNuevo.innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
+    } finally {
+      boton.disabled = false;
+    }
+  });
+
+  fila.querySelector('.quitar-fila').addEventListener('click', function () { fila.remove(); });
   cont.appendChild(fila);
 }
 
