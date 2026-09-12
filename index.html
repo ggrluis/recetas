@@ -671,14 +671,16 @@ function guardarLocal(clave, valor) {
   try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) { /* cuota llena: se ignora */ }
 }
 
+// El servidor puede mandar la instantánea completa (al cargar o al tocar el
+// catálogo) o solo la parte del periodo. Lo que no venga se conserva.
 function aplicarSnapshot(data) {
-  APP.ingredientes = data.ingredientes || [];
-  APP.conversiones = data.conversiones || [];
-  APP.recetas = data.recetas || [];
-  APP.recetaIngredientes = data.recetaIngredientes || [];
+  if (data.ingredientes) APP.ingredientes = data.ingredientes;
+  if (data.conversiones) APP.conversiones = data.conversiones;
+  if (data.recetas) APP.recetas = data.recetas;
+  if (data.recetaIngredientes) APP.recetaIngredientes = data.recetaIngredientes;
+  if (data.avisos) APP.avisos = data.avisos;
   APP.menuSemana = data.menuSemana || [];
   APP.listaCompra = data.listaCompra || [];
-  APP.avisos = data.avisos || [];
   if (data.ajustes) {
     APP.ajustes = {
       dia_inicio: Number.isFinite(Number(data.ajustes.dia_inicio))
@@ -735,7 +737,11 @@ async function apiPost(body) {
   if (!r.ok) throw new Error('Error de red: ' + r.status);
   const data = await r.json();
   if (!data.ok) { comprobarRechazoPin(data); throw new Error(data.error || 'Error desconocido'); }
-  if (data.ingredientes) { aplicarSnapshot(data); guardarSnapshot(); renderTodo(); }
+  if (data.menuSemana) {
+    aplicarSnapshot(data);
+    guardarSnapshot();
+    renderTodo(!!data.ingredientes);
+  }
   return data;
 }
 
@@ -816,7 +822,7 @@ const NOMBRE_APP = 'Puchero';
 
 // Subir esto en cada publicación: sirve para comprobar de un vistazo qué
 // versión está ejecutando cada móvil cuando algo no cuadra entre ellos.
-const VERSION_APP = '12';
+const VERSION_APP = '14';
 
 const TITULOS = {
   recetas: 'Recetas',
@@ -862,12 +868,16 @@ function nombreIngrediente(id) {
   return i ? i.nombre : '(eliminado)';
 }
 
-function renderTodo() {
-  renderRecetas();
-  renderIngredientes();
+// catalogoCambiado=false evita repintar recetario y despensa, que son las
+// listas más largas y no se ven afectadas por un cambio de menú o de compra.
+function renderTodo(catalogoCambiado) {
+  if (catalogoCambiado !== false) {
+    renderRecetas();
+    renderIngredientes();
+    renderAvisos();
+  }
   renderMenu();
   renderCompra();
-  renderAvisos();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1605,7 +1615,10 @@ function renderCompra() {
       if (!hayConexion()) { encolarMarca(item.id, chk.checked); return; }
 
       try {
+        // La pantalla ya refleja el cambio: no hace falta que el servidor
+        // devuelva nada, y así el viaje es mucho más corto.
         await apiPost({ accion: 'marcarComprado', id: item.id, comprado: chk.checked });
+        guardarSnapshot();
       } catch (err) {
         encolarMarca(item.id, chk.checked);  // se reintenta cuando vuelva la red
         actualizarBanda();
@@ -1771,8 +1784,22 @@ document.getElementById('aj-guardar').addEventListener('click', async function (
   const boton = document.getElementById('aj-guardar');
   boton.disabled = true;
   try {
-    await apiPost({ accion: 'guardarAjustes', dia_inicio: dia, momento_inicio: momento, comensales: comensales });
-    APP.offset = 0;          // las claves de periodo han cambiado
+    const res = await apiPost({ accion: 'guardarAjustes', dia_inicio: dia, momento_inicio: momento, comensales: comensales });
+
+    // Si el servidor no devuelve lo que acabamos de mandar, el guardado no
+    // ha cuajado: casi siempre es un backend desplegado más antiguo que la
+    // app. Mejor decirlo que dejar que el valor "vuelva solo" al anterior.
+    const devuelto = res && res.ajustes ? Number(res.ajustes.comensales) : NaN;
+    if (devuelto !== comensales) {
+      document.getElementById('ajustes-msg').innerHTML =
+        '<div class="msg error">El servidor no ha guardado los comensales. ' +
+        'Suele ser que Apps Script tiene desplegada una versión anterior: ' +
+        'vuelve a implementarlo con "Nueva versión".</div>';
+      boton.disabled = false;
+      return;
+    }
+
+    APP.offset = 0;
     await cargarTodo();
     document.getElementById('overlay-ajustes').classList.remove('activo');
   } catch (err) {
