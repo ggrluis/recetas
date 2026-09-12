@@ -560,6 +560,10 @@
     </div>
 
     <div style="margin-top:18px;"><button class="btn ancho" id="aj-guardar">Guardar ajustes</button></div>
+
+    <p class="sub" style="margin-top:22px; text-align:center;">
+      Versión <span id="aj-version"></span> · <button class="enlace" id="aj-recargar">Buscar actualización</button>
+    </p>
   </div>
 </div>
 
@@ -675,7 +679,16 @@ function aplicarSnapshot(data) {
   APP.menuSemana = data.menuSemana || [];
   APP.listaCompra = data.listaCompra || [];
   APP.avisos = data.avisos || [];
-  if (data.ajustes) APP.ajustes = data.ajustes;
+  if (data.ajustes) {
+    APP.ajustes = {
+      dia_inicio: Number.isFinite(Number(data.ajustes.dia_inicio))
+        ? Number(data.ajustes.dia_inicio) : AJUSTES_POR_DEFECTO.dia_inicio,
+      momento_inicio: (data.ajustes.momento_inicio === 'cena' || data.ajustes.momento_inicio === 'comida')
+        ? data.ajustes.momento_inicio : AJUSTES_POR_DEFECTO.momento_inicio,
+      comensales: Number(data.ajustes.comensales) >= 1
+        ? Number(data.ajustes.comensales) : AJUSTES_POR_DEFECTO.comensales
+    };
+  }
   APP.periodo = data.semana || APP.periodo;
 }
 
@@ -800,6 +813,10 @@ window.addEventListener('offline', actualizarBanda);
 // Nombre de la app. Cambiarlo aquí lo cambia en la cabecera y en la
 // pantalla del PIN (el del icono está en manifest.json).
 const NOMBRE_APP = 'Puchero';
+
+// Subir esto en cada publicación: sirve para comprobar de un vistazo qué
+// versión está ejecutando cada móvil cuando algo no cuadra entre ellos.
+const VERSION_APP = '12';
 
 const TITULOS = {
   recetas: 'Recetas',
@@ -1715,6 +1732,23 @@ document.getElementById('abrir-ajustes').addEventListener('click', function () {
   document.getElementById('ajustes-msg').innerHTML = '';
   refrescarResumenAjustes();
   document.getElementById('overlay-ajustes').classList.add('activo');
+});
+
+document.getElementById('aj-version').textContent = VERSION_APP;
+
+// Fuerza a descartar el service worker y recargar desde el servidor.
+document.getElementById('aj-recargar').addEventListener('click', async function () {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(function (r) { return r.unregister(); }));
+    }
+    if (window.caches) {
+      const nombres = await caches.keys();
+      await Promise.all(nombres.map(function (n) { return caches.delete(n); }));
+    }
+  } catch (e) { /* da igual: recargamos de todas formas */ }
+  location.reload(true);
 });
 
 document.getElementById('aj-dia').addEventListener('change', refrescarResumenAjustes);
