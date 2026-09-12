@@ -248,7 +248,9 @@
       <option value="g">g (gramos)</option>
       <option value="ml">ml (mililitros)</option>
       <option value="ud">ud (unidades)</option>
+      <option value="c/s">c/s (cantidad suficiente)</option>
     </select>
+    <p class="sub" id="i-nota-cs" style="display:none; margin-top:6px;">Los ingredientes c/s no se miden ni se suman: aparecen en la lista sin cantidad.</p>
     <div style="margin-top:16px;"><button class="btn ancho" id="i-guardar">Guardar</button></div>
 
     <div id="i-zona-conversiones" style="display:none;">
@@ -332,6 +334,10 @@ const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sáb
 // Día en que arranca el periodo de compra (0=domingo ... 6=sábado).
 // Para cambiarlo, toca esta línea y la misma constante en GeneradorRecetas.gs.
 const DIA_INICIO_PERIODO = 6; // sábado
+
+// Unidad cualitativa: "cantidad suficiente". Ni se mide ni se suma.
+const UNIDAD_CS = 'c/s';
+function esCS(u) { return String(u == null ? '' : u).trim().toLowerCase() === UNIDAD_CS; }
 
 const CLAVE_CACHE = 'recetario.snapshot';
 const CLAVE_COLA  = 'recetario.cola';
@@ -636,7 +642,8 @@ function abrirDetalleReceta(id) {
   const ings = APP.recetaIngredientes.filter(function (ri) { return ri.id_receta === id; });
   document.getElementById('detalle-ingredientes').innerHTML = ings.length
     ? ings.map(function (ri) {
-        return '<li>' + ri.cantidad_para_personas_base + ' ' + escapeHtml(ri.unidad_usada) + ' · ' + escapeHtml(nombreIngrediente(ri.id_ingrediente)) + '</li>';
+        const medida = esCS(ri.unidad_usada) ? 'c/s' : ri.cantidad_para_personas_base + ' ' + escapeHtml(ri.unidad_usada);
+        return '<li>' + medida + ' · ' + escapeHtml(nombreIngrediente(ri.id_ingrediente)) + '</li>';
       }).join('')
     : '<li>Sin ingredientes.</li>';
 
@@ -714,6 +721,21 @@ function refrescarSelectsIngredientes() {
   });
 }
 
+// Con unidad c/s no hay cantidad que pedir: se desactiva el campo para
+// que quede claro que no es un olvido.
+function ajustarCampoCantidad(fila) {
+  const unidad = fila.querySelector('.ri-unidad').value;
+  const campoCantidad = fila.querySelector('.ri-cantidad');
+  if (esCS(unidad)) {
+    campoCantidad.value = '';
+    campoCantidad.disabled = true;
+    campoCantidad.placeholder = '—';
+  } else {
+    campoCantidad.disabled = false;
+    campoCantidad.placeholder = '';
+  }
+}
+
 function filaIngredienteReceta(idIng, cantidad, unidad) {
   const cont = document.getElementById('r-ingredientes');
   const fila = document.createElement('div');
@@ -734,7 +756,7 @@ function filaIngredienteReceta(idIng, cantidad, unidad) {
       '<div class="fila">' +
         '<div class="col"><label>Nombre</label><input type="text" class="nuevo-nombre" placeholder="Ej. Pimentón"></div>' +
         '<div class="col cant"><label>Unidad base</label>' +
-          '<select class="nuevo-unidad"><option value="g">g</option><option value="ml">ml</option><option value="ud">ud</option></select></div>' +
+          '<select class="nuevo-unidad"><option value="g">g</option><option value="ml">ml</option><option value="ud">ud</option><option value="c/s">c/s</option></select></div>' +
       '</div>' +
       '<div class="nuevo-coincidencias"></div>' +
       '<div class="fila" style="margin-top:10px;">' +
@@ -767,8 +789,14 @@ function filaIngredienteReceta(idIng, cantidad, unidad) {
     }
     const opt = select.selectedOptions[0];
     const campoUnidad = fila.querySelector('.ri-unidad');
-    if (opt && opt.dataset.unidad && !campoUnidad.value) campoUnidad.value = opt.dataset.unidad;
+    if (opt && opt.dataset.unidad) {
+      if (esCS(opt.dataset.unidad)) campoUnidad.value = UNIDAD_CS;
+      else if (!campoUnidad.value) campoUnidad.value = opt.dataset.unidad;
+    }
+    ajustarCampoCantidad(fila);
   });
+
+  fila.querySelector('.ri-unidad').addEventListener('input', function () { ajustarCampoCantidad(fila); });
 
   // Avisa de parecidos mientras escribe, para no acabar con "tomate" y "tomates".
   campoNombre.addEventListener('input', function () {
@@ -802,9 +830,10 @@ function filaIngredienteReceta(idIng, cantidad, unidad) {
       refrescarSelectsIngredientes();
       select.value = res.id;
       const campoUnidad = fila.querySelector('.ri-unidad');
-      if (!campoUnidad.value) campoUnidad.value = campoUnidadBase.value;
+      if (esCS(campoUnidadBase.value) || !campoUnidad.value) campoUnidad.value = campoUnidadBase.value;
       cerrarBloqueNuevo();
-      fila.querySelector('.ri-cantidad').focus();
+      ajustarCampoCantidad(fila);
+      if (!esCS(campoUnidadBase.value)) fila.querySelector('.ri-cantidad').focus();
     } catch (err) {
       msgNuevo.innerHTML = '<div class="msg error">' + escapeHtml(err.message) + '</div>';
     } finally {
@@ -814,6 +843,7 @@ function filaIngredienteReceta(idIng, cantidad, unidad) {
 
   fila.querySelector('.quitar-fila').addEventListener('click', function () { fila.remove(); });
   cont.appendChild(fila);
+  ajustarCampoCantidad(fila);
 }
 
 document.getElementById('r-add-ingrediente').addEventListener('click', function () { filaIngredienteReceta(); });
@@ -827,12 +857,16 @@ document.getElementById('r-guardar').addEventListener('click', async function ()
   if (!nombre || !personas) { msg.innerHTML = '<div class="msg error">Falta el nombre o las personas.</div>'; return; }
 
   const ingredientes = Array.from(document.querySelectorAll('#r-ingredientes .ing-fila')).map(function (f) {
+    const unidad = f.querySelector('.ri-unidad').value.trim();
     return {
       id_ingrediente: f.querySelector('.ri-ingrediente').value,
-      cantidad: f.querySelector('.ri-cantidad').value,
-      unidad: f.querySelector('.ri-unidad').value.trim()
+      // c/s no lleva número; se guarda 0 para no dejar la celda vacía.
+      cantidad: esCS(unidad) ? 0 : f.querySelector('.ri-cantidad').value,
+      unidad: unidad
     };
-  }).filter(function (i) { return i.id_ingrediente && i.cantidad; });
+  }).filter(function (i) {
+    return i.id_ingrediente && (esCS(i.unidad) || i.cantidad);
+  });
 
   if (!ingredientes.length) { msg.innerHTML = '<div class="msg error">Añade al menos un ingrediente con cantidad.</div>'; return; }
 
@@ -909,7 +943,9 @@ function abrirFormularioIngrediente(id) {
   document.getElementById('conv-unidad').value = '';
   document.getElementById('conv-factor').value = '';
 
-  document.getElementById('i-zona-conversiones').style.display = ing ? 'block' : 'none';
+  const ingEsCS = ing && esCS(ing.unidad_base);
+  document.getElementById('i-nota-cs').style.display = ingEsCS ? 'block' : 'none';
+  document.getElementById('i-zona-conversiones').style.display = (ing && !ingEsCS) ? 'block' : 'none';
   document.getElementById('i-zona-eliminar').style.display = ing ? 'block' : 'none';
   if (ing) renderConversionesDe(ing);
 
@@ -1158,9 +1194,9 @@ function renderCompra() {
 
   cont.innerHTML = pendientes.concat(comprados).map(function (item) {
     const comprado = esComprado(item);
-    const cant = (item.cantidad_total !== '' && item.cantidad_total != null)
-      ? item.cantidad_total + ' ' + escapeHtml(item.unidad || '')
-      : escapeHtml(item.unidad || '');
+    const cant = (esCS(item.unidad) || item.cantidad_total === '' || item.cantidad_total == null)
+      ? escapeHtml(item.unidad || '')
+      : item.cantidad_total + ' ' + escapeHtml(item.unidad || '');
     return '<div class="item-compra' + (comprado ? ' comprado' : '') + (enCola[item.id] ? ' pendiente-sync' : '') + '">' +
       '<input type="checkbox" data-id="' + item.id + '"' + (comprado ? ' checked' : '') + '>' +
       '<span class="nombre">' + escapeHtml(item.ingrediente) +
