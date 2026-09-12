@@ -605,7 +605,7 @@ const APP = {
   ingredientes: [], conversiones: [], recetas: [], recetaIngredientes: [],
   menuSemana: [], listaCompra: [], avisos: [], periodo: '', offset: 0,
   editandoReceta: null, editandoIngrediente: null, cargando: false,
-  detallePersonas: 4,
+  detallePersonas: 4, pinDudoso: false,
   ajustes: {
     dia_inicio: AJUSTES_POR_DEFECTO.dia_inicio,
     momento_inicio: AJUSTES_POR_DEFECTO.momento_inicio,
@@ -703,15 +703,23 @@ function guardarSnapshot() {
   });
 }
 
-function pinGuardado() { return localStorage.getItem(CLAVE_PIN) || ''; }
+function pinGuardado() {
+  try { return localStorage.getItem(CLAVE_PIN) || ''; } catch (e) { return ''; }
+}
 
-// Si el servidor rechaza el PIN, se borra el guardado y se vuelve a pedir.
-function comprobarRechazoPin(data) {
-  if (data.error === 'PIN_INVALIDO') {
-    localStorage.removeItem(CLAVE_PIN);
-    pedirPin('El PIN ya no es válido.');
-    throw new Error('PIN incorrecto');
+// Un rechazo de PIN solo cierra la sesión si venía de algo que el usuario
+// acaba de hacer. Un reintento automático que falla NO debe desloguear ni
+// abrir un modal en mitad de cualquier otra cosa: se anota y se reintenta.
+function comprobarRechazoPin(data, esFondo) {
+  if (data.error !== 'PIN_INVALIDO') return;
+  if (esFondo) {
+    APP.pinDudoso = true;
+    actualizarBanda();
+    throw new Error('PIN rechazado en segundo plano');
   }
+  try { localStorage.removeItem(CLAVE_PIN); } catch (e) { /* almacenamiento no disponible */ }
+  pedirPin('El PIN ya no es válido.');
+  throw new Error('PIN incorrecto');
 }
 
 // Apps Script puede tardar mucho o no responder nunca. Sin un corte, la app
@@ -734,21 +742,27 @@ async function fetchConLimite(url, opciones) {
   }
 }
 
-async function apiGet(params) {
-  params.pin = pinGuardado();
+async function apiGet(params, esFondo) {
+  const pin = pinGuardado();
+  if (!pin) throw new Error('SIN_PIN');
+  params.pin = pin;
   const r = await fetchConLimite(API_URL + '?' + new URLSearchParams(params).toString());
   if (!r.ok) throw new Error('Error de red: ' + r.status);
   const data = await r.json();
-  if (!data.ok) { comprobarRechazoPin(data); throw new Error(data.error || 'Error desconocido'); }
+  if (!data.ok) { comprobarRechazoPin(data, esFondo); throw new Error(data.error || 'Error desconocido'); }
   return data;
 }
 
 // Las escrituras devuelven ya el estado actualizado del periodo, así que
 // no hace falta una segunda llamada de recarga.
-async function apiPost(body) {
+async function apiPost(body, esFondo) {
   if (!hayConexion()) throw new Error('Sin conexión. Inténtalo cuando vuelvas a tener señal.');
+  const pin = pinGuardado();
+  // Sin PIN no se manda nada: mandarlo vacío provoca un rechazo del servidor
+  // que, en un reintento de fondo, parecía salido de la nada.
+  if (!pin) throw new Error('SIN_PIN');
   body.semana = body.semana || APP.periodo;
-  body.pin = pinGuardado();
+  body.pin = pin;
   const r = await fetchConLimite(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
@@ -756,7 +770,7 @@ async function apiPost(body) {
   });
   if (!r.ok) throw new Error('Error de red: ' + r.status);
   const data = await r.json();
-  if (!data.ok) { comprobarRechazoPin(data); throw new Error(data.error || 'Error desconocido'); }
+  if (!data.ok) { comprobarRechazoPin(data, esFondo); throw new Error(data.error || 'Error desconocido'); }
   if (data.menuSemana) {
     aplicarSnapshot(data);
     guardarSnapshot();
@@ -792,16 +806,19 @@ function encolarMarca(id, comprado) {
   actualizarBanda();
 }
 
+// Reintento en segundo plano: pase lo que pase, nunca interrumpe al usuario.
+// Si falla, las marcas siguen en la cola para el próximo intento.
 async function vaciarCola() {
   const cola = leerLocal(CLAVE_COLA, []);
-  if (!cola.length || !hayConexion()) return;
+  if (!cola.length || !hayConexion() || !pinGuardado()) return;
   try {
-    await apiPost({ accion: 'marcarCompradoLote', marcas: cola });
+    await apiPost({ accion: 'marcarCompradoLote', marcas: cola }, true);
     guardarLocal(CLAVE_COLA, []);
-    actualizarBanda();
+    APP.pinDudoso = false;
   } catch (err) {
-    // Se queda en la cola para el próximo intento.
+    console.warn('Cola no vaciada:', err.message);
   }
+  actualizarBanda();
 }
 
 function idsEnCola() {
@@ -814,7 +831,10 @@ function actualizarBanda() {
   const banda = document.getElementById('banda-estado');
   const pendientes = leerLocal(CLAVE_COLA, []).length;
 
-  if (!hayConexion()) {
+  if (APP.pinDudoso) {
+    banda.className = 'banda-estado visible offline';
+    banda.textContent = 'El servidor rechazó el PIN al guardar. Comprueba el PIN en Ajustes.';
+  } else if (!hayConexion()) {
     banda.className = 'banda-estado visible offline';
     banda.textContent = pendientes
       ? 'Sin conexión · ' + pendientes + ' cambio(s) se guardarán al volver la señal'
@@ -831,7 +851,17 @@ function actualizarBanda() {
   }
 }
 
-window.addEventListener('online', function () { actualizarBanda(); vaciarCola().then(cargarTodo).catch(function(){}); });
+window.addEventListener('online', function () {
+  actualizarBanda();
+  vaciarCola().then(function () { return cargarTodo(); }).catch(function () {});
+});
+
+// Al volver a la app tras dejarla en segundo plano, reintentar lo pendiente.
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && pinGuardado()) {
+    vaciarCola().catch(function () {});
+  }
+});
 window.addEventListener('offline', actualizarBanda);
 
 // ════════════════════════════════════════════════════════════
@@ -843,7 +873,7 @@ const NOMBRE_APP = 'Puchero';
 
 // Subir esto en cada publicación: sirve para comprobar de un vistazo qué
 // versión está ejecutando cada móvil cuando algo no cuadra entre ellos.
-const VERSION_APP = '15';
+const VERSION_APP = '16';
 
 const TITULOS = {
   recetas: 'Recetas',
@@ -1692,6 +1722,9 @@ document.getElementById('cm-guardar').addEventListener('click', async function (
 // ARRANQUE
 // ════════════════════════════════════════════════════════════
 function mostrarErrorCarga(err) {
+  if (err.message === 'SIN_PIN') { pedirPin(''); return; }
+  if (err.message === 'PIN incorrecto') return;   // ya se ha abierto la pantalla de PIN
+
   const cont = document.getElementById('lista-recetas');
   const yaHayDatos = APP.recetas.length || APP.listaCompra.length;
   if (!yaHayDatos) {
@@ -1846,9 +1879,11 @@ async function validarPinYEntrar() {
 
   const boton = document.getElementById('pin-entrar');
   boton.disabled = true;
-  localStorage.setItem(CLAVE_PIN, pin);
+  try { localStorage.setItem(CLAVE_PIN, pin); } catch (e) { /* sin almacenamiento */ }
+  APP.pinDudoso = false;
   try {
     await cargarTodo();
+    vaciarCola().catch(function () {});
     document.getElementById('overlay-pin').classList.remove('activo');
   } catch (err) {
     if (err.message !== 'PIN incorrecto') {
